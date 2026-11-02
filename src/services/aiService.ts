@@ -510,6 +510,52 @@ class AIService {
     const text = input.trim();
     const lower = text.toLowerCase();
 
+    // 0. Stock / Inventory Voice Query Pattern
+    const isStockQuery =
+      (lower.includes('stock') || lower.includes('సరుకు') || lower.includes('నిల్వ') || lower.includes('స్టాక్') || lower.includes('सामान') || lower.includes('स्टॉक')) &&
+      (lower.includes('how much') || lower.includes('status') || lower.includes('ఎంత') || lower.includes('ఎలా') || lower.includes('చూపించు') || lower.includes('చెప్పు') || lower.includes('कितना') || lower.includes('दिखाओ') || lower.includes('स्थिति') || lower.includes('report'));
+
+    if (isStockQuery) {
+      const inv = storage.getInventory(currentShopId);
+      const lowStock = inv.filter((i) => i.quantity <= i.minStockLevel);
+      const totalUnits = inv.reduce((sum, i) => sum + i.quantity, 0);
+      const totalVal = inv.reduce((sum, i) => sum + i.quantity * i.price, 0);
+
+      const reply =
+        lower.includes('తెలుగు') || /[\u0C00-\u0C7F]/.test(text)
+          ? `మీ దుకాణంలో మొత్తం **${inv.length} రకాల సరుకులు** (${totalUnits} యూనిట్లు) ఉన్నాయి. మొత్తం స్టాక్ విలువ **₹${totalVal.toLocaleString('en-IN')}**.\n${lowStock.length > 0 ? `⚠️ తక్కువగా ఉన్నవి: ${lowStock.map(l => `${l.productName} (${l.quantity} ${l.unit})`).join(', ')}` : '✅ అన్ని సరుకులు తగినంత నిల్వ ఉన్నాయి.'}`
+          : /[\u0900-\u097F]/.test(text)
+          ? `आपकी दुकान में कुल **${inv.length} उत्पाद** (${totalUnits} यूनिट्स) हैं। कुल स्टॉक मूल्य **₹${totalVal.toLocaleString('en-IN')}** है।\n${lowStock.length > 0 ? `⚠️ कम स्टॉक: ${lowStock.map(l => `${l.productName} (${l.quantity} ${l.unit})`).join(', ')}` : '✅ सभी सामान पर्याप्त मात्रा में उपलब्ध हैं।'}`
+          : `Your store currently has **${inv.length} SKUs** (${totalUnits} total units) with a total stock valuation of **₹${totalVal.toLocaleString('en-IN')}**.\n${lowStock.length > 0 ? `⚠️ Low stock warnings: ${lowStock.map(l => `${l.productName} (${l.quantity} ${l.unit})`).join(', ')}` : '✅ All inventory items are healthily stocked.'}`;
+
+      return {
+        reply,
+        actionType: 'general',
+      };
+    }
+
+    // 0b. Customer Khata Balance Voice Query Pattern
+    const isCustomerQuery =
+      (lower.includes('balance') || lower.includes('బాకీ') || lower.includes('బ్యాలెన్స్') || lower.includes('బకాయి') || lower.includes('बाकी')) &&
+      !lower.includes('bill');
+
+    if (isCustomerQuery) {
+      const customers = storage.getCustomers();
+      const matchedCustomer = customers.find((c) => lower.includes(c.name.toLowerCase().split(' ')[0]));
+      if (matchedCustomer) {
+        const reply =
+          lower.includes('తెలుగు') || /[\u0C00-\u0C7F]/.test(text)
+            ? `**${matchedCustomer.name}** ప్రస్తుత బాకీ నిల్వ: **₹${matchedCustomer.khataBalance}** (చివరి సందర్శన: ${matchedCustomer.lastVisit}).`
+            : /[\u0900-\u097F]/.test(text)
+            ? `**${matchedCustomer.name}** का कुल बकाया: **₹${matchedCustomer.khataBalance}** (अंतिम विज़िट: ${matchedCustomer.lastVisit})।`
+            : `**${matchedCustomer.name}**'s outstanding Khata balance is **₹${matchedCustomer.khataBalance}** (last visit: ${matchedCustomer.lastVisit}).`;
+        return {
+          reply,
+          actionType: 'general',
+        };
+      }
+    }
+
     // 1. Credit Sale Pattern: "Ramesh ki 3 soaps 120 rupees" / "Ramesh credit 2 oil 280"
     const creditSaleMatch = lower.match(
       /(?:credit|ki|khata|account|ledger)?\s*([a-zA-Z]+)\s*(?:ki|gariki|account|khata)?\s*(\d+|oka|rendu|moodu|aidu)?\s*([a-zA-Z\s]+?)\s*(\d+)\s*(?:rupees|rs|rs\.|inr)?\s*$/i

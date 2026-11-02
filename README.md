@@ -1,12 +1,12 @@
-# Mana Kirana (మన కిరాణా / हमारा किराना) — AI-Powered Smart Local Commerce
+# SMARTVYAPAAR.AI (స్మార్ట్ వ్యాపార్ / स्मार्ट व्यापार) — Autonomous Local Commerce & Digital Khata Intelligence
 
-> **"Find what you need from your local shops — just ask."**  
+> **"Find what you need from your local shops — just speak or ask."**  
 > *"మీ దగ్గర్లోని దుకాణాలలో మీకు కావాల్సిన సరుకులు వెతకండి — అడగండి చాలు."*  
 > *"अपनी पास की दुकान से जो चाहिए खोजें — बस बोलिए या पूछिए।"*
 
-**Mana Kirana** connects neighborhood kirana and general stores with nearby customers. Small retailers can digitize their inventory, track customer Khata (udhar/jama), and log daily expenses using natural voice or text in **Telugu, Hindi, or English** without complicated software. Nearby customers can ask for multi-item grocery baskets by typing or speaking naturally and discover which store has all requested items at the lowest total basket price.
+**SMARTVYAPAAR.AI** connects neighborhood kirana and general stores with nearby customers. Small retailers can digitize their inventory, track customer Khata (udhar/jama), and log daily expenses using natural voice or text in **Telugu, Hindi, or English** without complicated software. Shopkeepers can also consult **Mana-AI** for automated PDF stock audits, customer statements, and revenue breakdown.
 
-Developed by **Akhil Kumar**.
+Developed by **Akhil Kumar** ([@AkhilRathod03](https://github.com/AkhilRathod03)).
 
 ---
 
@@ -150,4 +150,4 @@ This repository includes `public/_redirects`:
 
 ---
 
-© 2026 Mana Kirana. Designed & Developed by **Akhil Kumar**.
+© 2026 SMARTVYAPAAR.AI. Designed & Developed by **Akhil Kumar** ([@AkhilRathod03](https://github.com/AkhilRathod03)).

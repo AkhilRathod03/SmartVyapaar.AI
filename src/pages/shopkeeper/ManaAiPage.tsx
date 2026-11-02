@@ -725,29 +725,20 @@ Ask me anything about your shop:
               className="flex-1 min-w-0 bg-slate-100 rounded-2xl px-3.5 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500 transition"
             />
 
-            {/* Voice Language Pill */}
-            <div className="hidden sm:flex items-center bg-slate-100 p-1 rounded-xl text-[10px] font-bold border border-slate-200">
-              <button
-                type="button"
-                onClick={() => handleLanguageChange('te')}
-                className={`px-1.5 py-0.5 rounded-md transition ${language === 'te' ? 'bg-emerald-600 text-white' : 'text-slate-600 hover:text-slate-900'}`}
+            {/* Voice Language Dropdown */}
+            <div className="relative hidden sm:inline-flex items-center">
+              <Globe className="w-3 h-3 text-emerald-600 absolute left-2 pointer-events-none" />
+              <select
+                value={language}
+                onChange={(e) => handleLanguageChange(e.target.value as 'en' | 'te' | 'hi')}
+                className="appearance-none bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold pl-6 pr-6 py-2 rounded-xl border border-slate-200 hover:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer transition shadow-sm"
+                aria-label="Select Voice Language"
               >
-                తెలుగు
-              </button>
-              <button
-                type="button"
-                onClick={() => handleLanguageChange('hi')}
-                className={`px-1.5 py-0.5 rounded-md transition ${language === 'hi' ? 'bg-emerald-600 text-white' : 'text-slate-600 hover:text-slate-900'}`}
-              >
-                हिंदी
-              </button>
-              <button
-                type="button"
-                onClick={() => handleLanguageChange('en')}
-                className={`px-1.5 py-0.5 rounded-md transition ${language === 'en' ? 'bg-emerald-600 text-white' : 'text-slate-600 hover:text-slate-900'}`}
-              >
-                EN
-              </button>
+                <option value="te">తెలుగు (TE)</option>
+                <option value="hi">हिंदी (HI)</option>
+                <option value="en">English (EN)</option>
+              </select>
+              <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 pointer-events-none" />
             </div>
 
             {/* MIC BUTTON */}

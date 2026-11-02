@@ -9,6 +9,9 @@ import {
   Volume2,
   VolumeX,
   AlertCircle,
+  Globe,
+  ChevronDown,
+  Sparkles,
 } from 'lucide-react';
 import { aiService } from '../../services/aiService';
 import { storage } from '../../services/storageService';
@@ -21,12 +24,12 @@ export const ShopAIAssistant: React.FC = () => {
 
   const getInitialMessage = () => {
     if (language === 'te') {
-      return 'నమస్కారం! మీ దుకాణంలో ఏం జరిగిందో మైక్ లో చెప్పండి లేదా ఇక్కడ రాయండి — కొత్త సరుకులు రావడం, కస్టమర్ల ఖాతా ఉధార్, లేదా ఖర్చులు నేరుగా సేవ్ అవుతాయి.';
+      return 'నమస్కారం! మీ దుకాణంలో ఏం జరిగిందో మైక్ లో చెప్పండి లేదా ఇక్కడ రాయండి — కొత్త సరుకులు రావడం, కస్టమర్ల ఖాతా ఉధార్, లేదా ఖర్చులు నేరుగా సేవ్ అవుతాయి.\n\nవాయిస్ ద్వారానే "సేవ్ చేయి" లేదా "ఖరారు చేయి" అని చెప్పి నిర్ధారించవచ్చు!';
     }
     if (language === 'hi') {
-      return 'नमस्ते! दुकान में जो हुआ बोलकर बताएं या लिखें — नया माल आना, उधारी बिक्री (खाता) या रोज़ का खर्चा सीधे दर्ज हो जाएगा।';
+      return 'नमस्ते! दुकान में जो हुआ बोलकर बताएं या लिखें — नया माल आना, उधारी बिक्री (खाता) या रोज़ का खर्चा सीधे दर्ज हो जाएगा।\n\nआवाज से "कन्फर्म" या "सेव करो" बोलकर हाथों के बिना भी रिकॉर्ड सेव कर सकते हैं!';
     }
-    return 'Namaste! Tell me what happened in your shop in English, Telugu, or Hindi — stock arrival, Khata credit sale, or expenses.';
+    return 'Namaste! Tell me what happened in your shop in English, Telugu, or Hindi — stock arrival, Khata credit sale, or expenses.\n\nYou can even say "Confirm" or "Save" hands-free to commit records!';
   };
 
   const [messages, setMessages] = useState<AIMessage[]>([
@@ -41,7 +44,7 @@ export const ShopAIAssistant: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // REAL VOICE STATES
+  // REAL VOICE STATES & REFS
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
   const [speechError, setSpeechError] = useState<string | null>(null);
@@ -50,6 +53,8 @@ export const ShopAIAssistant: React.FC = () => {
   );
   const [isSpeakingTts, setIsSpeakingTts] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
+  const transcriptRef = useRef<string>('');
+  const silenceTimerRef = useRef<any>(null);
 
   useEffect(() => {
     setSelectedVoiceLang(language === 'te' ? 'te-IN' : language === 'hi' ? 'hi-IN' : 'en-IN');
@@ -62,6 +67,7 @@ export const ShopAIAssistant: React.FC = () => {
   // Clean up speech recognition & synthesis on unmount
   useEffect(() => {
     return () => {
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       if (recognitionRef.current) {
         try {
           recognitionRef.current.abort();
@@ -75,198 +81,28 @@ export const ShopAIAssistant: React.FC = () => {
 
   const samplePrompts = [
     {
-      lang: 'తెలుగు (సరుకు రాక)',
-      text: '10 సబ్బులు వచ్చాయి.',
+      lang: 'తెలుగు (సరుకు & సేవ్)',
+      text: '10 సబ్బులు వచ్చాయి సేవ్ చేయి',
     },
     {
       lang: 'తెలుగు (ఖాతా ఉధార్)',
-      text: 'రమేష్ కి 3 సబ్బులు 120 రూపాయలు.',
+      text: 'రమేష్ కి 3 సబ్బులు 120 రూపాయలు',
     },
     {
       lang: 'हिंदी (नया सामान)',
-      text: '10 साबुन, 5 तेल पैकेट आए।',
+      text: '10 साबुन, 5 तेल पैकेट आए सेव करो',
     },
     {
       lang: 'हिंदी (दुकान खर्चा)',
-      text: 'बिजली का बिल 450 रुपये दिया।',
+      text: 'बिजली का बिल 450 रुपये दिया',
     },
     {
-      lang: 'English',
+      lang: 'English (Stock Restock)',
       text: '10 soaps, 5 oil packets, 3 tube lights',
     },
   ];
 
-  const handleSend = (textToSend?: string) => {
-    const raw = (textToSend || input).trim();
-    if (!raw) return;
-
-    const userMsg: AIMessage = {
-      id: `msg-${Date.now()}`,
-      sender: 'user',
-      text: raw,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
-    setInput('');
-    setInterimTranscript('');
-    setIsProcessing(true);
-
-    setTimeout(() => {
-      const parsed = aiService.parseShopkeeperInput(raw, shop.id);
-
-      const aiMsg: AIMessage = {
-        id: `ai-${Date.now()}`,
-        sender: 'assistant',
-        text: parsed.reply,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        structuredConfirmation: parsed.structuredData,
-      };
-
-      setMessages((prev) => [...prev, aiMsg]);
-      setIsProcessing(false);
-
-      // Optional TTS confirmation readback
-      speakUtterance(parsed.reply);
-    }, 350);
-  };
-
-  // Web Speech API Voice Recognition
-  const startListening = () => {
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      setSpeechError(
-        language === 'te'
-          ? 'మీ బ్రౌజర్ లో వాయిస్ సపోర్ట్ లేదు. దయచేసి Google Chrome లేదా Microsoft Edge వాడండి.'
-          : language === 'hi'
-          ? 'आपके ब्राउज़र में वॉइस सपोर्ट नहीं है। कृपया Google Chrome या Edge का उपयोग करें।'
-          : 'Voice input is not supported in this browser. Please use Google Chrome or Edge.'
-      );
-      return;
-    }
-
-    try {
-      if (recognitionRef.current) {
-        recognitionRef.current.abort();
-      }
-
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      recognition.lang = selectedVoiceLang;
-      recognitionRef.current = recognition;
-
-      recognition.onstart = () => {
-        setIsListening(true);
-        setSpeechError(null);
-        setInterimTranscript('');
-      };
-
-      recognition.onresult = (event: any) => {
-        let interim = '';
-        let final = '';
-
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            final += event.results[i][0].transcript;
-          } else {
-            interim += event.results[i][0].transcript;
-          }
-        }
-
-        if (interim) {
-          setInterimTranscript(interim);
-        }
-
-        if (final) {
-          setInterimTranscript('');
-          setIsListening(false);
-          handleSend(final.trim());
-        }
-      };
-
-      recognition.onerror = (event: any) => {
-        console.warn('Speech recognition error:', event.error);
-        setIsListening(false);
-        if (event.error === 'not-allowed' || event.error === 'permission-denied') {
-          setSpeechError(
-            language === 'te'
-              ? 'మైక్రోఫోన్ అనుమతి నిరాకరించబడింది. బ్రౌజర్ లో మైక్ పర్మిషన్ ఆన్ చేయండి.'
-              : language === 'hi'
-              ? 'माइक्रोफ़ोन अनुमति नहीं मिली। कृपया ब्राउज़र में अनुमति दें।'
-              : 'Microphone permission denied. Please allow microphone access in your browser.'
-          );
-        } else if (event.error !== 'no-speech') {
-          setSpeechError(
-            language === 'te'
-              ? 'వాయిస్ సరిగా వినిపించలేదు, దయచేసి మళ్ళీ చెప్పండి.'
-              : language === 'hi'
-              ? 'आवाज स्पष्ट नहीं सुनाई दी, कृपया पुनः बोलें।'
-              : 'Could not hear clearly. Please try speaking again.'
-          );
-        }
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognition.start();
-    } catch (err: any) {
-      console.error(err);
-      setIsListening(false);
-      setSpeechError('Microphone could not be started.');
-    }
-  };
-
-  const stopListening = () => {
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch {}
-    }
-    setIsListening(false);
-  };
-
-  const toggleListening = () => {
-    if (isListening) {
-      stopListening();
-    } else {
-      startListening();
-    }
-  };
-
-  // Text to Speech
-  const speakUtterance = (textToSpeak: string, msgId?: string) => {
-    if (!('speechSynthesis' in window)) return;
-    try {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(textToSpeak);
-      utterance.lang = selectedVoiceLang;
-      utterance.rate = 0.95;
-
-      if (msgId) {
-        setIsSpeakingTts(msgId);
-        utterance.onend = () => setIsSpeakingTts(null);
-        utterance.onerror = () => setIsSpeakingTts(null);
-      }
-      window.speechSynthesis.speak(utterance);
-    } catch {}
-  };
-
-  const handleToggleSpeak = (msgId: string, text: string) => {
-    if (!('speechSynthesis' in window)) return;
-    if (isSpeakingTts === msgId) {
-      window.speechSynthesis.cancel();
-      setIsSpeakingTts(null);
-    } else {
-      speakUtterance(text, msgId);
-    }
-  };
-
-  const handleConfirmRecord = (msgId: string, structuredData: any) => {
+  const executeStorageRecord = (structuredData: any) => {
     const { type, payload } = structuredData;
 
     if (type === 'inventory_add') {
@@ -312,6 +148,10 @@ export const ShopAIAssistant: React.FC = () => {
         notes: payload.notes,
       });
     }
+  };
+
+  const handleConfirmRecord = (msgId: string, structuredData: any) => {
+    executeStorageRecord(structuredData);
 
     setMessages((prev) =>
       prev.map((m) => {
@@ -337,6 +177,248 @@ export const ShopAIAssistant: React.FC = () => {
     speakUtterance(successVoice);
   };
 
+  const handleSend = (textToSend?: string) => {
+    const raw = (textToSend || input).trim();
+    if (!raw) return;
+
+    const userMsg: AIMessage = {
+      id: `msg-${Date.now()}`,
+      sender: 'user',
+      text: raw,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+    setInput('');
+    setInterimTranscript('');
+    transcriptRef.current = '';
+    setIsProcessing(true);
+
+    // 1. Hands-Free Voice Confirmation Command
+    const isConfirmVoice = /^(confirm|save|yes|okay|ok|proceed|సరే|సేవ్\s*చేయి|సేవ్|ఖరారు\s*చేయి|ఖరారు|చేసేయి|అవును|హా|हाँ|सेव\s*करो|सेव|कन्फर्म|ठीक\s*है|दर्ज\s*करो)$/i.test(raw);
+    const isCancelVoice = /^(cancel|discard|no|stop|రద్దు\s*చేయి|రద్దు|వద్దు|కాన్సిల్|रद्द\s*करो|रद्द|नहीं|कैंसिल)$/i.test(raw);
+
+    const pendingMsg = [...messages].reverse().find(
+      (m) => m.structuredConfirmation && m.structuredConfirmation.status === 'pending'
+    );
+
+    if (isConfirmVoice && pendingMsg) {
+      setTimeout(() => {
+        setIsProcessing(false);
+        handleConfirmRecord(pendingMsg.id, pendingMsg.structuredConfirmation);
+      }, 300);
+      return;
+    }
+
+    if (isCancelVoice && pendingMsg) {
+      setTimeout(() => {
+        setIsProcessing(false);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === pendingMsg.id && m.structuredConfirmation
+              ? { ...m, structuredConfirmation: { ...m.structuredConfirmation, status: 'cancelled' } }
+              : m
+          )
+        );
+        const cancelReply =
+          language === 'te'
+            ? 'రద్దు చేయబడింది.'
+            : language === 'hi'
+            ? 'रद्द कर दिया गया।'
+            : 'Pending action cancelled.';
+        const cancelAiMsg: AIMessage = {
+          id: `ai-${Date.now()}`,
+          sender: 'assistant',
+          text: cancelReply,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages((prev) => [...prev, cancelAiMsg]);
+        speakUtterance(cancelReply);
+      }, 300);
+      return;
+    }
+
+    setTimeout(() => {
+      const parsed = aiService.parseShopkeeperInput(raw, shop.id);
+
+      // Auto-commit if user spoke "save" / "confirm" in the utterance
+      const lowerRaw = raw.toLowerCase();
+      const shouldAutoConfirm =
+        lowerRaw.includes('save') ||
+        lowerRaw.includes('confirm') ||
+        raw.includes('సేవ్') ||
+        raw.includes('ఖరారు') ||
+        raw.includes('सेव') ||
+        raw.includes('दर्ज');
+
+      if (shouldAutoConfirm && parsed.structuredData && parsed.structuredData.status === 'pending') {
+        executeStorageRecord(parsed.structuredData);
+        parsed.structuredData.status = 'confirmed';
+        parsed.reply +=
+          language === 'te'
+            ? ' (వాయిస్ కమాండ్ ద్వారా వెంటనే సేవ్ చేయబడింది!)'
+            : language === 'hi'
+            ? ' (वॉइस कमांड द्वारा तुरंत दर्ज कर लिया गया!)'
+            : ' (Automatically saved via Voice Command!)';
+      }
+
+      const aiMsg: AIMessage = {
+        id: `ai-${Date.now()}`,
+        sender: 'assistant',
+        text: parsed.reply,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        structuredConfirmation: parsed.structuredData,
+      };
+
+      setMessages((prev) => [...prev, aiMsg]);
+      setIsProcessing(false);
+
+      // Spoken voice feedback
+      speakUtterance(parsed.reply);
+    }, 350);
+  };
+
+  // Web Speech API Voice Recognition with Continuous Mode & Auto-commit
+  const startListening = () => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setSpeechError(
+        language === 'te'
+          ? 'మీ బ్రౌజర్ లో వాయిస్ సపోర్ట్ లేదు. దయచేసి Google Chrome లేదా Microsoft Edge వాడండి.'
+          : language === 'hi'
+          ? 'आपके ब्राउज़र में वॉइस सपोर्ट नहीं है। कृपया Google Chrome या Edge का उपयोग करें।'
+          : 'Voice input is not supported in this browser. Please use Google Chrome or Edge.'
+      );
+      return;
+    }
+
+    try {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+
+      transcriptRef.current = '';
+      setInterimTranscript('');
+
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = selectedVoiceLang;
+      recognitionRef.current = recognition;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setSpeechError(null);
+        setInterimTranscript('');
+      };
+
+      recognition.onresult = (event: any) => {
+        let interim = '';
+        let final = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            final += event.results[i][0].transcript;
+          } else {
+            interim += event.results[i][0].transcript;
+          }
+        }
+
+        const currentText = (final || interim).trim();
+        if (currentText) {
+          transcriptRef.current = currentText;
+          setInterimTranscript(currentText);
+          setInput(currentText);
+
+          // Reset silence timer: when shopkeeper pauses for 900ms, auto-commit
+          if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+          silenceTimerRef.current = setTimeout(() => {
+            if (transcriptRef.current.trim().length > 1) {
+              const toSend = transcriptRef.current.trim();
+              stopListening();
+              handleSend(toSend);
+            }
+          }, 950);
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn('Speech recognition error:', event.error);
+        if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+          setIsListening(false);
+          setSpeechError(
+            language === 'te'
+              ? 'మైక్రోఫోన్ అనుమతి నిరాకరించబడింది. బ్రౌజర్ లో మైక్ పర్మిషన్ ఆన్ చేయండి.'
+              : language === 'hi'
+              ? 'माइक्रोफ़ोन अनुमति नहीं मिली। कृपया ब्राउज़र में अनुमति दें।'
+              : 'Microphone permission denied. Please allow microphone access in your browser.'
+          );
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.start();
+    } catch (err: any) {
+      console.error(err);
+      setIsListening(false);
+      setSpeechError('Microphone could not be started.');
+    }
+  };
+
+  const stopListening = () => {
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {}
+    }
+    setIsListening(false);
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      stopListening();
+      if (transcriptRef.current.trim()) {
+        handleSend(transcriptRef.current.trim());
+      }
+    } else {
+      startListening();
+    }
+  };
+
+  // Text to Speech
+  const speakUtterance = (textToSpeak: string, msgId?: string) => {
+    if (!('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.lang = selectedVoiceLang;
+      utterance.rate = 0.95;
+
+      if (msgId) {
+        setIsSpeakingTts(msgId);
+        utterance.onend = () => setIsSpeakingTts(null);
+        utterance.onerror = () => setIsSpeakingTts(null);
+      }
+      window.speechSynthesis.speak(utterance);
+    } catch {}
+  };
+
+  const handleToggleSpeak = (msgId: string, text: string) => {
+    if (!('speechSynthesis' in window)) return;
+    if (isSpeakingTts === msgId) {
+      window.speechSynthesis.cancel();
+      setIsSpeakingTts(null);
+    } else {
+      speakUtterance(text, msgId);
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto space-y-4 px-2 sm:px-0">
       {/* Header */}
@@ -351,42 +433,21 @@ export const ShopAIAssistant: React.FC = () => {
           </div>
         </div>
 
-        {/* Voice Input Language Selector */}
-        <div className="flex items-center gap-1.5 self-start sm:self-auto bg-slate-100 p-1 rounded-2xl text-xs font-bold border border-slate-200">
-          <span className="text-[10px] text-slate-400 uppercase font-black px-1.5">Voice:</span>
-          <button
-            type="button"
-            onClick={() => setSelectedVoiceLang('te-IN')}
-            className={`px-2.5 py-1 rounded-xl transition ${
-              selectedVoiceLang === 'te-IN'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
+        {/* Voice Input Language Dropdown */}
+        <div className="relative inline-flex items-center">
+          <Globe className="w-3.5 h-3.5 text-emerald-600 absolute left-2.5 pointer-events-none" />
+          <select
+            id="voice-lang-select"
+            value={selectedVoiceLang}
+            onChange={(e) => setSelectedVoiceLang(e.target.value as 'te-IN' | 'hi-IN' | 'en-IN')}
+            className="appearance-none bg-slate-100 hover:bg-slate-200/80 text-slate-900 text-xs font-bold pl-8 pr-7 py-2 rounded-2xl border border-slate-200 hover:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer transition shadow-sm"
+            aria-label="Select Voice Recognition Language"
           >
-            తెలుగు
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedVoiceLang('hi-IN')}
-            className={`px-2.5 py-1 rounded-xl transition ${
-              selectedVoiceLang === 'hi-IN'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            हिंदी
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedVoiceLang('en-IN')}
-            className={`px-2.5 py-1 rounded-xl transition ${
-              selectedVoiceLang === 'en-IN'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            EN
-          </button>
+            <option value="te-IN">తెలుగు (Telugu)</option>
+            <option value="hi-IN">हिंदी (Hindi)</option>
+            <option value="en-IN">English (EN)</option>
+          </select>
+          <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 pointer-events-none" />
         </div>
       </div>
 
@@ -394,10 +455,10 @@ export const ShopAIAssistant: React.FC = () => {
       <div className="bg-white p-3 sm:p-3.5 rounded-3xl border border-slate-200 shadow-sm overflow-x-auto scrollbar-none">
         <span className="text-[11px] text-slate-400 font-bold block mb-2">
           {language === 'te'
-            ? 'నమూనాను నొక్కి పరీక్షించండి:'
+            ? 'నమూనాను నొక్కి లేదా మైక్ లో చెప్పి పరీక్షించండి (చేతుల్లేకుండా వాయిస్ ద్వారానే ఆర్డర్ / సేవ్):'
             : language === 'hi'
-            ? 'नमूना वाक्य क्लिक करें:'
-            : 'Tap to test voice entry:'}
+            ? 'नमूना वाक्य क्लिक करें या बोलें (वॉइस से ही ऑटो-कन्फर्म करें):'
+            : 'Tap sample or speak naturally (Voice-only add, save & confirm):'}
         </span>
         <div className="flex gap-2">
           {samplePrompts.map((p, idx) => (
@@ -472,13 +533,17 @@ export const ShopAIAssistant: React.FC = () => {
                         <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
                           <CheckCircle2 className="w-3.5 h-3.5" /> {t('savedSuccess')}
                         </span>
+                      ) : msg.structuredConfirmation.status === 'cancelled' ? (
+                        <span className="text-[11px] font-bold text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full shrink-0">
+                          {language === 'te' ? 'రద్దు చేయబడింది' : language === 'hi' ? 'रद्द' : 'Cancelled'}
+                        </span>
                       ) : (
                         <span className="text-[10px] font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-full shrink-0">
                           {language === 'te'
-                            ? 'సరిచూసి నొక్కండి'
+                            ? 'వాయిస్ ద్వారా "సేవ్ చేయి" లేదా నొక్కండి'
                             : language === 'hi'
-                            ? 'पुष्टि करें'
-                            : 'Confirm details'}
+                            ? 'बोलें "सेव करो" या क्लिक करें'
+                            : 'Say "Save" or click confirm'}
                         </span>
                       )}
                     </div>
@@ -508,6 +573,10 @@ export const ShopAIAssistant: React.FC = () => {
                           {t('editRecord')}
                         </button>
                       </div>
+                    ) : msg.structuredConfirmation.status === 'cancelled' ? (
+                      <div className="pt-1.5 text-[11px] text-slate-500 font-bold flex items-center gap-1">
+                        <span>{language === 'te' ? 'ఈ రికార్డు రద్దు చేయబడింది' : language === 'hi' ? 'यह रिकॉर्ड रद्द किया गया' : 'Record cancelled'}</span>
+                      </div>
                     ) : (
                       <div className="pt-1.5 text-[11px] text-emerald-800 font-bold flex items-center gap-1">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -530,10 +599,10 @@ export const ShopAIAssistant: React.FC = () => {
                   {interimTranscript
                     ? `"${interimTranscript}..."`
                     : language === 'te'
-                    ? 'చెప్పండి, వింటున్నాము...'
+                    ? 'చెప్పండి, వింటున్నాము... ("సేవ్ చేయి" అని కూడా అనవచ్చు)'
                     : language === 'hi'
-                    ? 'बोलिए, सुन रहे हैं...'
-                    : 'Listening... Speak now'}
+                    ? 'बोलिए, सुन रहे हैं... ("सेव करो" भी बोल सकते हैं)'
+                    : 'Listening... Speak now (You can also say "Save" / "Confirm")'}
                 </span>
               </div>
             </div>
@@ -567,10 +636,10 @@ export const ShopAIAssistant: React.FC = () => {
                 </span>
                 <span>
                   {language === 'te'
-                    ? 'వాయిస్ రికార్డింగ్ ఆన్‌లో ఉంది'
+                    ? 'వాయిస్ లైవ్: మాట్లాడిన వెంటనే ఆటో-ఎంట్రీ అవుతుంది'
                     : language === 'hi'
-                    ? 'वॉइस रिकॉर्डिंग चालू है'
-                    : 'Voice Recording Active'}
+                    ? 'वॉइस लाइव: बोलते ही तुरंत एंट्री हो जाएगी'
+                    : 'Hands-Free Voice Active: Auto-commits on speech'}
                 </span>
               </div>
               <button

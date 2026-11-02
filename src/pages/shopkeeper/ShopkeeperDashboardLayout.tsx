@@ -13,6 +13,7 @@ import {
   X,
   ArrowLeft,
   Globe,
+  ChevronDown,
   Bot,
   Sparkles,
 } from 'lucide-react';
@@ -114,21 +115,21 @@ export const ShopkeeperDashboardLayout: React.FC = () => {
             </div>
           </Link>
 
-          {/* Language selector in desktop sidebar */}
-          <div className="mt-2 bg-slate-800 p-1 rounded-xl flex items-center justify-between border border-slate-700">
-            <Globe className="w-3.5 h-3.5 text-slate-400 ml-1.5" />
-            <div className="flex gap-1 text-[11px] font-bold">
-              {(['en', 'te', 'hi'] as Language[]).map((l) => (
-                <button
-                  key={l}
-                  onClick={() => setLanguage(l)}
-                  className={`px-2 py-0.5 rounded-lg transition ${
-                    language === l ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {l === 'en' ? 'EN' : l === 'te' ? 'తెలుగు' : 'हिंदी'}
-                </button>
-              ))}
+          {/* Language dropdown in desktop sidebar */}
+          <div className="mt-2.5">
+            <div className="relative flex items-center">
+              <Globe className="w-3.5 h-3.5 text-emerald-400 absolute left-2.5 pointer-events-none" />
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as Language)}
+                className="w-full appearance-none bg-slate-800 hover:bg-slate-700/80 text-white text-xs font-bold pl-8 pr-7 py-2 rounded-xl border border-slate-700 hover:border-emerald-500/70 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer transition shadow-sm"
+                aria-label="Select Language"
+              >
+                <option value="en" className="bg-slate-900 text-white">English (EN)</option>
+                <option value="te" className="bg-slate-900 text-white">తెలుగు (Telugu)</option>
+                <option value="hi" className="bg-slate-900 text-white">हिंदी (Hindi)</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none" />
             </div>
           </div>
 
@@ -255,20 +256,20 @@ export const ShopkeeperDashboardLayout: React.FC = () => {
               </div>
 
               {/* Language Switch in Mobile Sidebar */}
-              <div className="mb-3 bg-slate-800 p-1.5 rounded-xl flex items-center justify-between">
-                <span className="text-xs text-slate-400 font-bold">భాష / भाषा:</span>
-                <div className="flex gap-1 text-[11px] font-bold">
-                  {(['en', 'te', 'hi'] as Language[]).map((l) => (
-                    <button
-                      key={l}
-                      onClick={() => setLanguage(l)}
-                      className={`px-2 py-0.5 rounded-md ${
-                        language === l ? 'bg-emerald-600 text-white' : 'text-slate-400'
-                      }`}
-                    >
-                      {l === 'en' ? 'EN' : l === 'te' ? 'తెలుగు' : 'हिंदी'}
-                    </button>
-                  ))}
+              <div className="mb-3">
+                <div className="relative flex items-center">
+                  <Globe className="w-3.5 h-3.5 text-emerald-400 absolute left-2.5 pointer-events-none" />
+                  <select
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value as Language)}
+                    className="w-full appearance-none bg-slate-800 text-white text-xs font-bold pl-8 pr-7 py-2 rounded-xl border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer transition shadow-sm"
+                    aria-label="Select Mobile Language"
+                  >
+                    <option value="en" className="bg-slate-900 text-white">English (EN)</option>
+                    <option value="te" className="bg-slate-900 text-white">తెలుగు (Telugu)</option>
+                    <option value="hi" className="bg-slate-900 text-white">हिंदी (Hindi)</option>
+                  </select>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none" />
                 </div>
               </div>
 
