@@ -144,6 +144,64 @@ Ask me anything about your shop:
     };
   }, []);
 
+  const handleConfirmAction = (msgId: string, structuredData: any) => {
+    storage.executeStructuredAction(structuredData, shop.id);
+
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id === msgId && m.actionCard?.structuredData) {
+          return {
+            ...m,
+            actionCard: {
+              ...m.actionCard,
+              structuredData: {
+                ...m.actionCard.structuredData,
+                status: 'confirmed',
+              },
+            },
+          };
+        }
+        return m;
+      })
+    );
+
+    const successVoice =
+      language === 'te'
+        ? 'విజయవంతంగా రికార్డులలో సేవ్ చేయబడింది!'
+        : language === 'hi'
+        ? 'सफलतापूर्वक सुरक्षित कर लिया गया!'
+        : 'Successfully saved to store records!';
+
+    if ('speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(successVoice);
+        u.lang = selectedVoiceLang;
+        window.speechSynthesis.speak(u);
+      } catch {}
+    }
+  };
+
+  const handleCancelAction = (msgId: string) => {
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id === msgId && m.actionCard?.structuredData) {
+          return {
+            ...m,
+            actionCard: {
+              ...m.actionCard,
+              structuredData: {
+                ...m.actionCard.structuredData,
+                status: 'cancelled',
+              },
+            },
+          };
+        }
+        return m;
+      })
+    );
+  };
+
   const handleSend = async (textToSend?: string) => {
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
@@ -167,9 +225,57 @@ Ask me anything about your shop:
     setInterimTranscript('');
     setIsProcessing(true);
 
+    // Hands-Free Confirmation Voice Command Check
+    const isConfirmVoice = /^(confirm|save|yes|okay|ok|proceed|సరే|సేవ్\s*చేయి|సేవ్|ఖరారు\s*చేయి|ఖరారు|చేసేయి|అవును|హా|हाँ|सेव\s*करो|सेव|कन्फर्म|ठीक\s*है|दर्ज\s*करో)$/i.test(raw);
+    const isCancelVoice = /^(cancel|discard|no|stop|రద్దు\s*చేయి|రద్దు|వద్దు|కాన్సిల్|रद्द\s*करो|रद्द|नहीं|कैंसिल)$/i.test(raw);
+
+    const pendingMsg = [...messages].reverse().find(
+      (m) => m.actionCard?.type === 'structured_action' && m.actionCard?.structuredData?.status === 'pending'
+    );
+
+    if (isConfirmVoice && pendingMsg) {
+      setTimeout(() => {
+        setIsProcessing(false);
+        handleConfirmAction(pendingMsg.id, pendingMsg.actionCard?.structuredData);
+      }, 300);
+      return;
+    }
+
+    if (isCancelVoice && pendingMsg) {
+      setTimeout(() => {
+        setIsProcessing(false);
+        handleCancelAction(pendingMsg.id);
+        const cancelReply =
+          language === 'te'
+            ? 'రద్దు చేయబడింది.'
+            : language === 'hi'
+            ? 'रद्द कर दिया गया।'
+            : 'Pending action cancelled.';
+        const cancelAiMsg: ManaAIMessage = {
+          id: `ai-${Date.now()}`,
+          sender: 'assistant',
+          text: cancelReply,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages((prev) => [...prev, cancelAiMsg]);
+      }, 300);
+      return;
+    }
+
     try {
       const response = await manaAiService.askShopkeeperCopilot(raw, shop.id, language);
       setMessages((prev) => [...prev, response]);
+
+      // Automatically speak the response text if user interacted by voice
+      if (response && response.text && ('speechSynthesis' in window)) {
+        try {
+          window.speechSynthesis.cancel();
+          const cleanText = response.text.replace(/[*#•-]/g, '').substring(0, 180);
+          const u = new SpeechSynthesisUtterance(cleanText);
+          u.lang = selectedVoiceLang;
+          window.speechSynthesis.speak(u);
+        } catch {}
+      }
     } catch (e) {
       setMessages((prev) => [
         ...prev,
@@ -381,6 +487,18 @@ Ask me anything about your shop:
     {
       category:
         language === 'te'
+          ? 'సరుకులు చేర్చండి (వాయిస్)'
+          : language === 'hi'
+          ? 'सामान जोड़ें (आवाज)'
+          : 'Stock Add (Voice)',
+      icon: Package,
+      textEn: '8 soaps, chai, order lo stock lo, add to the inventory',
+      textTe: '8 soaps, chai, stock lo add cheyi',
+      textHi: '8 साबुन और चाय पत्ती स्टॉक में जोड़ो',
+    },
+    {
+      category:
+        language === 'te'
           ? 'సేల్స్ & PDF రిపోర్ట్'
           : language === 'hi'
           ? 'बिक्री और PDF रिपोर्ट'
@@ -393,38 +511,26 @@ Ask me anything about your shop:
     {
       category:
         language === 'te'
-          ? 'స్టాక్ & హోల్‌సేలర్'
+          ? 'కస్టమర్ ఖాతా రాయండి'
           : language === 'hi'
-          ? 'स्टॉक और होलसेलर'
-          : 'Stock & Wholesaler',
-      icon: Package,
-      textEn: 'What all stock was updated yesterday or is low in stock? Give me a PDF.',
-      textTe: 'నిన్న ఏ సరుకులు వచ్చాయి? నిల్వల PDF కావాలి',
-      textHi: 'कल कौन सा सामान आया या कौन सा स्टॉक कम है? मुझे PDF रिपोर्ट दो',
-    },
-    {
-      category:
-        language === 'te'
-          ? 'కస్టమర్ ఖాతా'
-          : language === 'hi'
-          ? 'ग्राहक का खाता'
-          : 'Customer Khata',
+          ? 'ग्राहक खाता एंट्री'
+          : 'Khata Credit Entry',
       icon: BookOpen,
-      textEn: 'How much has Ramesh Kumar ordered and what is his balance? Give me a statement PDF.',
-      textTe: 'రమేష్ కుమార్ బాకీ ఎంత? స్టేట్‌మెంట్ PDF ఇవ్వు',
-      textHi: 'रमेश कुमार का इस महीने कितना खर्च हुआ और कितना उधार बाकी है? PDF दो',
+      textEn: 'Ramesh ki 3 soaps 120 rupees khata record',
+      textTe: 'రమేష్ కి 3 సబ్బులు 120 రూపాయలు ఖాతా',
+      textHi: 'रमेश को 3 साबुन 120 रुपये खाता में लिखो',
     },
     {
       category:
         language === 'te'
-          ? 'సరుకుల చెక్'
+          ? 'స్టాక్ ఆడిట్ PDF'
           : language === 'hi'
-          ? 'स्टॉक चेक'
-          : 'Inventory Check',
+          ? 'स्टॉक ऑडिट PDF'
+          : 'Stock Audit PDF',
       icon: TrendingUp,
-      textEn: 'Which products are out of stock or need reordering from wholesaler?',
-      textTe: 'ఏ సరుకులు అయిపోతున్నాయి?',
-      textHi: 'कौन से सामान खत्म हो रहे हैं या दोबारा मंगाने हैं?',
+      textEn: 'Stock PDF of yesterday and today',
+      textTe: 'నిన్నటి మరియు నేటి స్టాక్ PDF ఇవ్వు',
+      textHi: 'कल और आज का स्टॉक ऑडिट PDF दो',
     },
   ];
 
@@ -580,8 +686,94 @@ Ask me anything about your shop:
                   )}
                 </div>
 
+                {/* STRUCTURED ACTION CARD (Merged Voice Entry) */}
+                {msg.actionCard && msg.actionCard.type === 'structured_action' && msg.actionCard.structuredData && (
+                  <div className="mt-3.5 p-3.5 sm:p-4 bg-slate-50 border-2 border-emerald-500/40 rounded-2xl shadow-sm space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 ${
+                            msg.actionCard.structuredData.type === 'inventory_add'
+                              ? 'bg-emerald-600'
+                              : msg.actionCard.structuredData.type === 'credit_sale'
+                              ? 'bg-indigo-600'
+                              : 'bg-amber-600'
+                          }`}
+                        >
+                          {msg.actionCard.structuredData.type === 'inventory_add' ? (
+                            <Package className="w-4 h-4" />
+                          ) : msg.actionCard.structuredData.type === 'credit_sale' ? (
+                            <BookOpen className="w-4 h-4" />
+                          ) : (
+                            <DollarSign className="w-4 h-4" />
+                          )}
+                        </div>
+                        <div>
+                          <span className="font-extrabold text-xs text-slate-900 block">
+                            {msg.actionCard.structuredData.title}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">
+                            {msg.actionCard.structuredData.type === 'inventory_add'
+                              ? (language === 'te' ? 'సరుకుల నిల్వ మార్పు' : language === 'hi' ? 'स्टॉक जोड़ें' : 'Inventory Restock')
+                              : msg.actionCard.structuredData.type === 'credit_sale'
+                              ? (language === 'te' ? 'కస్టమర్ ఖాతా ఉధార్' : language === 'hi' ? 'खाता उधारी' : 'Customer Khata Credit')
+                              : (language === 'te' ? 'దుకాణ ఖర్చు' : language === 'hi' ? 'दुकान खर्च' : 'Store Expense')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {msg.actionCard.structuredData.status === 'confirmed' ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-full shrink-0">
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          {language === 'te' ? 'సేవ్ అయ్యింది' : language === 'hi' ? 'सुरक्षित' : 'Saved'}
+                        </span>
+                      ) : msg.actionCard.structuredData.status === 'cancelled' ? (
+                        <span className="text-[11px] font-bold text-slate-500 bg-slate-200 px-2.5 py-1 rounded-full shrink-0">
+                          {language === 'te' ? 'రద్దు చేయబడింది' : language === 'hi' ? 'रद्द' : 'Cancelled'}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-full animate-pulse shrink-0">
+                          {language === 'te' ? 'ఖరారు కోసం సిద్ధం' : language === 'hi' ? 'पुष्टि शेष' : 'Pending Confirmation'}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Fields Summary */}
+                    <div className="bg-white rounded-xl p-2.5 border border-slate-200 space-y-1.5 text-xs">
+                      {msg.actionCard.structuredData.fields?.map((f: any, idx: number) => (
+                        <div key={idx} className="flex justify-between items-center py-0.5">
+                          <span className="text-slate-600 font-medium">{f.label}:</span>
+                          <span className="font-bold text-slate-900">{f.value}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Interactive Action Buttons */}
+                    {msg.actionCard.structuredData.status === 'pending' && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          onClick={() => handleConfirmAction(msg.id, msg.actionCard?.structuredData)}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-sm"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>
+                            {msg.actionCard.buttonLabel ||
+                              (language === 'te' ? 'సేవ్ చేయండి' : language === 'hi' ? 'सुरक्षित करें' : 'Confirm & Save')}
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => handleCancelAction(msg.id)}
+                          className="px-3 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs transition"
+                        >
+                          {language === 'te' ? 'రద్దు' : language === 'hi' ? 'रद्द' : 'Cancel'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* INTERACTIVE PDF ACTION CARD */}
-                {msg.actionCard && (
+                {msg.actionCard && msg.actionCard.type === 'pdf_download' && (
                   <div className="mt-3.5 p-3.5 bg-gradient-to-r from-emerald-50/90 to-teal-50/70 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-slate-900 shadow-sm">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">

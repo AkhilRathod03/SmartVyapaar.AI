@@ -449,6 +449,72 @@ class StorageService {
     return newTx;
   }
 
+  /**
+   * Execute Structured Action (Inventory Restock, Khata Credit, Expense)
+   */
+  public executeStructuredAction(structuredData: any, shopId: string = 'shop-1'): boolean {
+    if (!structuredData || !structuredData.type || !structuredData.payload) return false;
+    const { type, payload } = structuredData;
+
+    try {
+      if (type === 'inventory_add' && Array.isArray(payload.items)) {
+        const existing = this.getInventory(shopId);
+        payload.items.forEach((newItem: any) => {
+          const found = existing.find(
+            (inv) =>
+              inv.productName.toLowerCase().includes(newItem.productName.toLowerCase()) ||
+              newItem.productName.toLowerCase().includes(inv.productName.toLowerCase())
+          );
+          if (found) {
+            this.adjustStock(found.id, newItem.quantity);
+          } else {
+            this.addInventoryItem({
+              shopId,
+              productName: newItem.productName,
+              category: 'Groceries',
+              price: newItem.price || 35,
+              quantity: newItem.quantity,
+              unit: newItem.unit || 'piece',
+              minStockLevel: 5,
+              status: 'in_stock',
+            });
+          }
+        });
+        return true;
+      }
+
+      if (type === 'credit_sale') {
+        this.addKhataTransaction({
+          shopId: payload.shopId || shopId,
+          customerId: payload.customerId,
+          customerName: payload.customerName,
+          date: 'Today',
+          itemDescription: payload.itemDescription,
+          debit: payload.debit,
+          credit: 0,
+          previousBalance: payload.previousBalance,
+          remainingBalance: payload.remainingBalance,
+          notes: payload.notes || 'Recorded via Mana-AI Copilot',
+        });
+        return true;
+      }
+
+      if (type === 'expense') {
+        this.addExpense({
+          shopId: payload.shopId || shopId,
+          date: payload.date || 'Today',
+          category: payload.category || 'Miscellaneous',
+          amount: payload.amount,
+          notes: payload.notes || 'Recorded via Mana-AI Copilot',
+        });
+        return true;
+      }
+    } catch (e) {
+      console.error('Error executing structured action:', e);
+    }
+    return false;
+  }
+
   // RESET
   public resetToDemoData() {
     localStorage.setItem(STORAGE_KEYS.SHOPS, JSON.stringify(INITIAL_SHOPS));

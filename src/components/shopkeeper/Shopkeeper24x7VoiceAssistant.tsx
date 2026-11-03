@@ -44,10 +44,15 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
   const [lastSpokenText, setLastSpokenText] = useState<string>('');
   const [isDismissedManual, setIsDismissedManual] = useState(false);
 
-  // Selected Speech recognition language
-  const [voiceLang, setVoiceLang] = useState<'te-IN' | 'hi-IN' | 'en-IN'>(
-    language === 'te' ? 'te-IN' : language === 'hi' ? 'hi-IN' : 'en-IN'
-  );
+  // Selected Speech recognition language (defaults to Telugu for local Kirana experience)
+  const [voiceLang, setVoiceLang] = useState<'te-IN' | 'hi-IN' | 'en-IN'>(() => {
+    try {
+      const saved = localStorage.getItem('impulx_shopkeeper_voice_lang');
+      if (saved === 'te-IN' || saved === 'hi-IN' || saved === 'en-IN') return saved;
+    } catch {}
+    // Default to Telugu for local Kirana shopkeeper
+    return language === 'hi' ? 'hi-IN' : language === 'en' ? 'te-IN' : 'te-IN';
+  });
 
   const recognitionRef = useRef<any>(null);
   const announcedOrderIdsRef = useRef<Set<string>>(new Set());
@@ -59,10 +64,24 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
   const isVoiceActiveRef = useRef<boolean>(true);
   const isManuallyPausedRef = useRef<boolean>(false);
 
-  // Keep voiceLang synced with global language
-  useEffect(() => {
-    setVoiceLang(language === 'te' ? 'te-IN' : language === 'hi' ? 'hi-IN' : 'en-IN');
-  }, [language]);
+  // Persist voice language
+  const handleSelectVoiceLang = (newLang: 'te-IN' | 'hi-IN' | 'en-IN') => {
+    setVoiceLang(newLang);
+    try {
+      localStorage.setItem('impulx_shopkeeper_voice_lang', newLang);
+    } catch {}
+    if (newLang === 'te-IN') setLanguage('te');
+    else if (newLang === 'hi-IN') setLanguage('hi');
+    else setLanguage('en');
+
+    const greeting =
+      newLang === 'te-IN'
+        ? 'తెలుగు వాయిస్ అసిస్టెంట్ ఆన్ అయ్యింది'
+        : newLang === 'hi-IN'
+        ? 'हिंदी वॉइस असिस्टेंट सक्रिय है'
+        : 'English voice assistant activated';
+    speakAI(greeting, undefined, newLang);
+  };
 
   // Sound Chime using Web Audio API
   const playKiranaDoorbellChime = () => {
@@ -268,10 +287,10 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
 
           const promptText =
             voiceLang === 'te-IN'
-              ? `నమస్కారం! మీకు ${pendingOrder.customerName} నుండి కొత్త ఆర్డర్ వచ్చింది: ${itemsSummary}. ఈ సరుకులు మీ దగ్గర ఉన్నాయా? మీరు ఆర్డర్ అంగీకరిస్తారా?`
+              ? `నమస్కారం! ${pendingOrder.customerName} నుండి కొత్త ఆర్డర్ వచ్చింది: ${itemsSummary}. మీ దగ్గర ఈ సరుకులు ఉన్నాయా? ప్యాక్ చేయడానికి రెడీగా ఉన్నారా?`
               : voiceLang === 'hi-IN'
-              ? `नमस्ते! आपको ${pendingOrder.customerName} से नया ऑर्डर मिला है: ${itemsSummary}। क्या यह सामान आपकी दुकान में है? क्या आप ऑर्डर स्वीकार करते हैं?`
-              : `Hey! You got a new order from ${pendingOrder.customerName} for ${itemsSummary}. Are these items available with you? Do you want to accept?`;
+              ? `नमस्ते! ${pendingOrder.customerName} से नया ऑर्डर आया है: ${itemsSummary}। क्या यह सामान उपलब्ध है? क्या आप पैक करने के लिए तैयार हैं?`
+              : `Hey! You got a new order from ${pendingOrder.customerName} for ${itemsSummary}. Are these items available with you and ready for packing?`;
 
           setAssistantStatus(
             voiceLang === 'te-IN'
@@ -286,7 +305,7 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
             if (isVoiceActiveRef.current && !isManuallyPausedRef.current) {
               startListening();
             }
-          });
+          }, voiceLang);
         }
       } else {
         setActiveVoiceOrder(null);
@@ -325,14 +344,24 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
     const teluguKeywords = [
       'vachayi',
       'vachadu',
+      'vachindu',
+      'vachesadu',
       'unnayi',
+      'unnaayi',
+      'unnai',
       'undi',
+      'vundi',
       'cheyi',
       'chestanu',
       'kavali',
       'pampinchanu',
+      'pampina',
+      'pampinchesa',
       'ayipoyindi',
+      'aipoindi',
+      'ayindi',
       'babu',
+      'anna',
       'avunu',
       'sare',
       'ledu',
@@ -340,6 +369,30 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
       'anta',
       'cheppandi',
       'pack chestanu',
+      'na items',
+      'items unnai',
+      'nae gara',
+      'na degara',
+      'naa daggara',
+      'daggara',
+      'back cheshna',
+      'pack cheshna',
+      'back chesina',
+      'pack chesina',
+      'pak chesina',
+      'bag chesna',
+      'pack chesesa',
+      'pack chesa',
+      'chesina',
+      'cheshna',
+      'chesa',
+      'ready undi',
+      'ready ga undi',
+      'delivery ready',
+      'tayaru',
+      'ichesanu',
+      'icheshna',
+      'icheyandi',
     ];
 
     const hindiKeywords = [
@@ -357,6 +410,8 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
       'bhai',
       'dost',
       'pack kar raha',
+      'pack kar diya',
+      'nikal gaya',
     ];
 
     const englishKeywords = [
@@ -382,6 +437,12 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
     const matchedEnglish = englishKeywords.filter((k) => lower.includes(k)).length;
 
     if (hasTeluguScript || matchedTelugu > 0) {
+      if (voiceLang !== 'te-IN') {
+        setVoiceLang('te-IN');
+        try {
+          localStorage.setItem('impulx_shopkeeper_voice_lang', 'te-IN');
+        } catch {}
+      }
       return {
         langCode: 'te-IN',
         dialect: matchedEnglish > 0 ? 'tenglish' : 'te',
@@ -389,6 +450,12 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
     }
 
     if (hasHindiScript || matchedHindi > 0) {
+      if (voiceLang !== 'hi-IN') {
+        setVoiceLang('hi-IN');
+        try {
+          localStorage.setItem('impulx_shopkeeper_voice_lang', 'hi-IN');
+        } catch {}
+      }
       return {
         langCode: 'hi-IN',
         dialect: matchedEnglish > 0 ? 'hinglish' : 'hi',
@@ -410,37 +477,30 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
     // Detect language of spoken response
     const detected = detectSpokenDialect(spokenText);
 
-    // STAGE 1: ORDER ACCEPTANCE / AVAILABILITY
-    // "Yeah these items are available in my stock and I am ready for the package / 5 minutes packaging time"
-    const isAcceptAvailable =
-      lower.includes('available') ||
-      lower.includes('accept') ||
-      lower.includes('yes') ||
-      lower.includes('pack') ||
-      lower.includes('ready for package') ||
-      lower.includes('ready') ||
-      lower.includes('5 minutes') ||
-      lower.includes('10 minutes') ||
-      lower.includes('ఉన్నాయి') ||
-      lower.includes('సరుకు ఉంది') ||
-      lower.includes('అంగీకరించు') ||
-      lower.includes('తీసుకో') ||
-      lower.includes('ప్యాక్') ||
-      lower.includes('సరే') ||
-      lower.includes('అవును') ||
-      lower.includes('హా') ||
-      lower.includes('సామాన్') ||
-      lower.includes('सामान है') ||
-      lower.includes('स्वीकार') ||
-      lower.includes('हाँ') ||
-      lower.includes('पैक कर रहा हूँ') ||
-      lower.includes('पैक');
-
-    // STAGE 2: PACKING COMPLETE / WAITING FOR DELIVERY PARTNER
-    // "Hey I have packed the items and it's ready for delivery / waiting for delivery partner"
+    // STAGE 2: ALREADY PACKED / WAITING FOR DELIVERY PARTNER
+    // Understands accents & phrases like:
+    // "na items unnai nae gara, it has been packed", "Back Cheshna orders delivery ready undi", "packed and ready"
     const isPackedReadyForPartner =
-      (lower.includes('packed') || lower.includes('packing') || lower.includes('ప్యాకింగ్ అయిపోయింది') || lower.includes('ప్యాక్ చేసేశాను') || lower.includes('पैक हो गया')) &&
-      (lower.includes('ready') || lower.includes('partner') || lower.includes('waiting') || lower.includes('రెడీ') || lower.includes('తయార్') || lower.includes('delivery'));
+      lower.includes('it has been packed') ||
+      lower.includes('already packed') ||
+      lower.includes('back cheshna') ||
+      lower.includes('pack cheshna') ||
+      lower.includes('back chesina') ||
+      lower.includes('pack chesina') ||
+      lower.includes('bag chesna') ||
+      lower.includes('pack chesa') ||
+      lower.includes('pack chesanu') ||
+      lower.includes('ప్యాకింగ్ అయిపోయింది') ||
+      lower.includes('ప్యాక్ చేసేశాను') ||
+      lower.includes('ప్యాక్ చేశాను') ||
+      lower.includes('ప్యాక్ అయిపోయింది') ||
+      lower.includes('ready undi') ||
+      lower.includes('delivery ready') ||
+      lower.includes('ready ga undi') ||
+      lower.includes('पैक हो गया') ||
+      lower.includes('पैक कर दिया') ||
+      ((lower.includes('packed') || lower.includes('packing') || lower.includes('ప్యాక్')) &&
+        (lower.includes('ready') || lower.includes('partner') || lower.includes('waiting') || lower.includes('రెడీ') || lower.includes('delivery')));
 
     // STAGE 3: DELIVERY PARTNER ARRIVED / SENT
     // "Yeah I have packed and the delivery partner has arrived and I have sent the order / out for delivery"
@@ -455,13 +515,48 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
       lower.includes('డెలివరీ బాయ్ వచ్చాడు') ||
       lower.includes('డెలివరీ పార్టనర్ వచ్చాడు') ||
       lower.includes('పంపించేశాను') ||
+      lower.includes('పంపించాను') ||
+      lower.includes('ఇచ్చేశాను') ||
+      lower.includes('ఇచ్చాను') ||
+      lower.includes('icheshna') ||
+      lower.includes('pampina') ||
+      lower.includes('pampinchanu') ||
+      lower.includes('vachadu') ||
+      lower.includes('vachesadu') ||
+      lower.includes('vachindu') ||
       lower.includes('రవాణా') ||
       lower.includes('బయలుదేరింది') ||
-      lower.includes('డిలీవరి') ||
+      lower.includes('డిస్పాచ్') ||
       lower.includes('डिलीवरी पार्टनर आ गया') ||
       lower.includes('भेज दिया') ||
       lower.includes('रवाना हो गया') ||
       lower.includes('निकल गया');
+
+    // STAGE 1: ORDER ACCEPTANCE / AVAILABILITY
+    // "Yeah these items are available in my stock and I am ready for the package / 5 minutes packaging time"
+    const isAcceptAvailable =
+      lower.includes('available') ||
+      lower.includes('accept') ||
+      lower.includes('yes') ||
+      lower.includes('pack') ||
+      lower.includes('ready for package') ||
+      lower.includes('5 minutes') ||
+      lower.includes('10 minutes') ||
+      lower.includes('ఉన్నాయి') ||
+      lower.includes('సరుకు ఉంది') ||
+      lower.includes('అంగీకరించు') ||
+      lower.includes('తీసుకో') ||
+      lower.includes('ప్యాక్ చేస్తాను') ||
+      lower.includes('సరే') ||
+      lower.includes('అవును') ||
+      lower.includes('హా') ||
+      lower.includes('సామాన్ ఉంది') ||
+      lower.includes('సామాన్') ||
+      lower.includes('सामान है') ||
+      lower.includes('स्वीकार') ||
+      lower.includes('हाँ') ||
+      lower.includes('पैक कर रहा हूँ') ||
+      lower.includes('पैक');
 
     // REJECTION
     const isReject =
@@ -477,8 +572,9 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
       lower.includes('रद्द');
 
     // EXECUTE LIFECYCLE TRANSITIONS:
-    if (isPartnerArrivedSent && (currentOrder.status === 'ready' || currentOrder.status === 'preparing')) {
-      // 3. Mark OUT_FOR_DELIVERY
+
+    // 1. If shopkeeper states items were dispatched with delivery partner
+    if (isPartnerArrivedSent && (currentOrder.status === 'ready' || currentOrder.status === 'preparing' || currentOrder.status === 'request_sent')) {
       stopListening();
       const statusNote = 'Delivery partner has picked up — yeah it is on the way for delivery! 🛵';
       storage.updateOrderStatus(
@@ -491,13 +587,13 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
 
       let aiReply = '';
       if (detected.dialect === 'te') {
-        aiReply = 'ఆర్డర్ విజయవంతంగా రవాణా చేయబడింది! కస్టమర్‌కి "ఆన్ ది వే" అని సమాచారం అందించాను. 🛵';
+        aiReply = 'చాలా మంచిది! ఆర్డర్ డెలివరీకి బయలుదేరినట్లు కస్టమర్‌కి సమాచారం అందించాను. 🛵';
       } else if (detected.dialect === 'tenglish') {
-        aiReply = 'Order dispatch ayindi! Customer ki "on the way for delivery" ani update pampam! 🛵';
+        aiReply = 'Super! Order dispatch ayindi ani customer ki update pampam! 🛵';
       } else if (detected.dialect === 'hi') {
-        aiReply = 'ऑर्डर सफलतापूर्वक भेज दिया गया है! ग्राहक को "रास्ते में है" की सूचना मिल गई है। 🛵';
+        aiReply = 'बहुत बढ़िया! ऑर्डर सफलतापूर्वक भेज दिया गया है, ग्राहक को डिलीवरी लाइव दिखने लगी है। 🛵';
       } else if (detected.dialect === 'hinglish') {
-        aiReply = 'Order successfully dispatch ho gaya hai! Customer ko "on the way for delivery" update chala gaya hai! 🛵';
+        aiReply = 'Order successfully dispatch ho gaya hai! Customer ko live tracking update chala gaya hai! 🛵';
       } else {
         aiReply = 'Order dispatched! Customer notified that delivery is on the way! 🛵';
       }
@@ -509,8 +605,9 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
       return;
     }
 
-    if (isPackedReadyForPartner && (currentOrder.status === 'preparing' || currentOrder.status === 'shop_accepted')) {
-      // 2. Mark READY (Waiting for Delivery Partner)
+    // 2. If shopkeeper states items are ALREADY PACKED & READY FOR DELIVERY PARTNER
+    // (Works seamlessly even directly from request_sent when shopkeeper says "na items unnai nae gara, it has been packed")
+    if (isPackedReadyForPartner && (currentOrder.status === 'request_sent' || currentOrder.status === 'preparing' || currentOrder.status === 'shop_accepted')) {
       stopListening();
       const statusNote = 'Items have been packed and are ready for delivery, waiting for delivery partner.';
       storage.updateOrderStatus(
@@ -523,15 +620,15 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
 
       let aiReply = '';
       if (detected.dialect === 'te') {
-        aiReply = 'సరే! సరుకులు ప్యాక్ అయ్యాయి, డెలివరీ పార్టనర్ కోసం సిద్ధంగా ఉన్నట్లు కస్టమర్‌కి అప్‌డేట్ చేశాను. డెలివరీ బాయ్ రాగానే "డెలివరీ బాయ్ వచ్చాడు, పంపించాను" అని చెప్పండి.';
+        aiReply = 'సరేనండి! సరుకులు మీ దగ్గర ఉన్నాయని, ప్యాకింగ్ పూర్తయి డెలివరీకి సిద్ధంగా ఉందని కస్టమర్‌కి అప్‌డేట్ చేసేశాను. డెలివరీ పార్టనర్ రాగానే అతనికి ఇచ్చేయండి.';
       } else if (detected.dialect === 'tenglish') {
-        aiReply = 'Items packed and ready! Customer ki update vellindi. Delivery partner ravagane "delivery boy vachadu, order pampinchanu" ani cheppandi.';
+        aiReply = 'Got it! Items unnai and already pack ayipoyayi ani customer portal lo update chesam. Delivery boy ravagane handover cheyandi.';
       } else if (detected.dialect === 'hi') {
-        aiReply = 'ठीक है! सामान पैक हो गया और डिलीवरी पार्टनर की प्रतीक्षा है। डिलीवरी पार्टनर आते ही "सामान भेज दिया" बोलें।';
+        aiReply = 'बिल्कुल! सामान पैक हो चुका है और डिलीवरी पार्टनर के लिए तैयार है, ग्राहक को सूचना दे दी गई है।';
       } else if (detected.dialect === 'hinglish') {
-        aiReply = 'Items packed aur delivery partner ke liye ready hain! Partner aate hi "delivery partner aa gaya, bhej diya" bolein.';
+        aiReply = 'Got it! Items pack ho gaye hain aur partner ke liye ready hain, customer ko update chala gaya hai.';
       } else {
-        aiReply = 'Items packed and ready for delivery partner! Customer portal updated. When delivery partner arrives, say "Sent the order".';
+        aiReply = 'Got it! Updated customer portal: Items are packed and ready for delivery partner pickup.';
       }
 
       setAssistantStatus('Items packed. Waiting for delivery partner...');
@@ -541,8 +638,8 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
       return;
     }
 
+    // 3. If shopkeeper confirms acceptance and begins packing
     if (isAcceptAvailable && (currentOrder.status === 'request_sent' || currentOrder.status === 'shop_accepted')) {
-      // 1. Mark PREPARING (In-Stock & Packing)
       stopListening();
       const statusNote = 'Yeah your items are there in stock and store is packing them up (Estimated 5 mins).';
       storage.updateOrderStatus(
@@ -555,15 +652,15 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
 
       let aiReply = '';
       if (detected.dialect === 'te') {
-        aiReply = 'అద్భుతం! సరుకులు ఉన్నాయని మరియు 5 నిమిషాల్లో ప్యాక్ చేస్తున్నారని కస్టమర్ పోర్టల్‌లో అప్‌డేట్ చేశాను. ప్యాకింగ్ పూర్తయ్యాక "ప్యాకింగ్ అయిపోయింది" అని చెప్పండి.';
+        aiReply = 'సరేనండి! ఆర్డర్ కన్ఫర్మ్ చేశాను. మీరు తీరిగ్గా ప్యాక్ చేసుకోండి. కస్టమర్‌కి "సరుకులు ప్యాక్ అవుతున్నాయి" అని అప్‌డేట్ చేసేశాను.';
       } else if (detected.dialect === 'tenglish') {
-        aiReply = 'Super! Order accept chesam. Items pack chestunnaru ani customer portal lo update ayindi. Packing complete avvagane "packing ayipoyindi" ani cheppandi.';
+        aiReply = 'Order confirm chesam! Items pack chestunnaru ani customer portal lo update ayindi.';
       } else if (detected.dialect === 'hi') {
-        aiReply = 'बढ़िया! ग्राहक को सूचित कर दिया गया है कि सामान उपलब्ध है और पैक हो रहा है। पैकिंग पूरी होने पर "पैक हो गया" बोलें।';
+        aiReply = 'हाँ जी! ऑर्डर स्वीकार कर लिया गया है। आप आराम से सामान पैक कर लें, मैंने ग्राहक को अपडेट कर दिया है।';
       } else if (detected.dialect === 'hinglish') {
-        aiReply = 'Badhiya! Order accept ho gaya hai. Customer ko notify kar diya hai ki items pack ho rahe hain. Packing complete hone par "pack ho gaya" bolein.';
+        aiReply = 'Badhiya! Order confirm ho gaya hai. Customer ko notify kar diya hai ki items pack ho rahe hain.';
       } else {
-        aiReply = 'Great! Updated customer portal: Items are available and being packed (5 mins). When packed, say "Items are packed".';
+        aiReply = 'Got it! Order confirmed. Customer portal updated that items are being packed.';
       }
 
       setAssistantStatus('Order accepted. Packaging in progress (5 mins)...');
@@ -663,13 +760,7 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
             <Globe className="w-3.5 h-3.5 text-emerald-400 absolute left-2.5 pointer-events-none" />
             <select
               value={voiceLang}
-              onChange={(e) => {
-                const newLang = e.target.value as any;
-                setVoiceLang(newLang);
-                if (newLang === 'te-IN') setLanguage('te');
-                else if (newLang === 'hi-IN') setLanguage('hi');
-                else setLanguage('en');
-              }}
+              onChange={(e) => handleSelectVoiceLang(e.target.value as any)}
               className="appearance-none bg-slate-800 text-white text-xs font-bold pl-8 pr-7 py-1.5 rounded-xl border border-slate-700 hover:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer shadow-sm"
               title="Change 24/7 AI Speech Language"
             >

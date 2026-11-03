@@ -49,15 +49,15 @@ export const ShopkeeperDashboardLayout: React.FC = () => {
     },
     {
       path: '/shopkeeper/mana-ai',
-      label: language === 'te' ? 'Mana-AI కోపైలట్' : language === 'hi' ? 'Mana-AI सलाहकार' : 'Mana-AI Copilot',
+      label:
+        language === 'te'
+          ? 'Mana-AI కోపైలట్ (ఆల్-ఇన్-వన్)'
+          : language === 'hi'
+          ? 'Mana-AI ऑल-इन-वन'
+          : 'Mana-AI Copilot (All-in-One)',
       icon: Bot,
       highlight: true,
-      badgeText: 'AI',
-    },
-    {
-      path: '/shopkeeper/ai-assistant',
-      label: language === 'te' ? 'చెప్పి రాయించండి' : language === 'hi' ? 'बोलकर एंट्री करें' : 'Voice Entry',
-      icon: Mic,
+      badgeText: 'A to Z AI',
     },
     {
       path: '/shopkeeper/inventory',

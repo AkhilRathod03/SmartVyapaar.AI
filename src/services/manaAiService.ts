@@ -1,5 +1,6 @@
 import { storage } from './storageService';
 import { pdfService } from './pdfService';
+import { aiService } from './aiService';
 import { Customer, InventoryItem, Order, Shop, Transaction, Expense } from '../types';
 
 export interface ManaAIMessage {
@@ -7,14 +8,16 @@ export interface ManaAIMessage {
   sender: 'user' | 'assistant';
   text: string;
   timestamp: string;
+  structuredConfirmation?: any;
   actionCard?: {
-    type: 'pdf_download' | 'action_link';
+    type: 'pdf_download' | 'action_link' | 'structured_action';
     title: string;
     description: string;
     buttonLabel: string;
     pdfAction?: 'stock_audit' | 'sales_report' | 'customer_statement' | 'custom_ai';
     pdfPayload?: any;
     linkUrl?: string;
+    structuredData?: any;
   };
 }
 
@@ -63,6 +66,75 @@ class ManaAIService {
     const expenses = storage.getExpenses(shopId);
 
     const config = this.getConfig();
+
+    // 0. Check for Direct Action Commands (Merged Voice Entry feature into Mana-AI):
+    // e.g. "8 soaps, chai, stock lo add cheyi", "Ramesh ki 3 soaps 120 rupees", "Current bill 450"
+    const parsedAction = aiService.parseShopkeeperInput(text, shopId);
+    if (
+      parsedAction.actionType === 'inventory_add' ||
+      parsedAction.actionType === 'credit_sale' ||
+      parsedAction.actionType === 'expense'
+    ) {
+      const shouldAutoConfirm =
+        lower.includes('save') ||
+        lower.includes('confirm') ||
+        text.includes('సేవ్') ||
+        text.includes('ఖరారు') ||
+        text.includes('సెట్') ||
+        text.includes('చేయి') ||
+        text.includes('सेव') ||
+        text.includes('दर्ज') ||
+        text.includes('కలుపు') ||
+        text.includes('జోడించు');
+
+      let replyText = parsedAction.reply;
+      let status = 'pending';
+
+      if (shouldAutoConfirm && parsedAction.structuredData) {
+        storage.executeStructuredAction(parsedAction.structuredData, shopId);
+        status = 'confirmed';
+        replyText +=
+          preferredLang === 'te' || /[\u0C00-\u0C7F]/.test(text)
+            ? ' (స్టాక్/రికార్డులలో వెంటనే భద్రపరచబడింది! ✅)'
+            : preferredLang === 'hi' || /[\u0900-\u097F]/.test(text)
+            ? ' (रिकॉर्ड में तुरंत सुरक्षित कर दिया गया! ✅)'
+            : ' (Successfully saved to store records! ✅)';
+      }
+
+      const structuredData = {
+        ...parsedAction.structuredData,
+        status,
+      };
+
+      return {
+        id: `action-${Date.now()}`,
+        sender: 'assistant',
+        text: replyText,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        structuredConfirmation: structuredData,
+        actionCard: {
+          type: 'structured_action',
+          title: structuredData.title || 'Confirm Transaction',
+          description: replyText,
+          buttonLabel:
+            preferredLang === 'te' || /[\u0C00-\u0C7F]/.test(text)
+              ? 'సేవ్ చేయండి'
+              : preferredLang === 'hi' || /[\u0900-\u097F]/.test(text)
+              ? 'पुष्टि व सुरक्षित करें'
+              : 'Confirm & Save',
+          structuredData,
+        },
+      };
+    }
+
+    if (parsedAction.actionType === 'clarification_needed' && parsedAction.clarificationPrompt) {
+      return {
+        id: `clarify-${Date.now()}`,
+        sender: 'assistant',
+        text: parsedAction.reply,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+    }
 
     // If external Gemini API is configured and key is present, try live Gemini LLM
     if (config.provider === 'gemini' && config.geminiApiKey) {
