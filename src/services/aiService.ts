@@ -757,14 +757,22 @@ class AIService {
       const priceMatch = lower.match(/(?:at|for|rate|price|each)?\s*(\d+)\s*(?:rupees|rs|rs\.|\/-|each|రూపాయలు|रुपये)/i);
       const unitPrice = priceMatch ? parseInt(priceMatch[1], 10) : undefined;
 
+      const itemsDesc = parsedItems.map((p) => `${p.quantity} ${p.unit} ${p.canonicalName}`).join(', ');
+      const isTelugu = /[\u0C00-\u0C7F]/.test(text) || lower.includes('vachayi') || lower.includes('stock lo') || lower.includes('చేయి') || lower.includes('కలుపు');
+      const isHindi = /[\u0900-\u097F]/.test(text) || lower.includes('aaye') || lower.includes('jodo');
+
+      const reply = isTelugu
+        ? `సరుకులు స్టాక్ లో చేర్చడం అర్థమైంది: ${itemsDesc}.`
+        : isHindi
+        ? `स्टॉक में सामान जोड़ने की पहचान की गई: ${itemsDesc}।`
+        : `Understood: Adding ${itemsDesc} to store inventory.`;
+
       return {
-        reply: isRestock
-          ? `దుకాణంలోకి కొత్త సరుకులు వచ్చాయి అని అర్థమైంది:`
-          : `సరుకుల నిల్వ మార్పు అర్థమైంది:`,
+        reply,
         actionType: 'inventory_add',
         structuredData: {
           type: 'inventory_add',
-          title: 'Confirm Inventory Restock',
+          title: isTelugu ? 'స్టాక్ లో సరుకులు చేర్చండి' : isHindi ? 'स्टॉक में नया सामान जोड़ें' : 'Confirm Inventory Restock',
           fields: parsedItems.map((p) => ({
             label: p.canonicalName,
             value: `+${p.quantity} ${p.unit} ${unitPrice ? `(@ ₹${unitPrice})` : ''}`,

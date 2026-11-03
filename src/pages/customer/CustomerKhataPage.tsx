@@ -445,3 +445,4 @@ export const CustomerKhataPage: React.FC = () => {
     </div>
   );
 };
+

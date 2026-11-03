@@ -60,8 +60,8 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2">
               <li>
-                <Link to="/shopkeeper/ai-assistant" className="hover:text-emerald-400 transition">
-                  {t('voiceEntryTitle')}
+                <Link to="/shopkeeper/mana-ai" className="hover:text-emerald-400 transition">
+                  {language === 'te' ? 'Mana-AI కోపైలట్' : language === 'hi' ? 'Mana-AI सलाहकार' : 'Mana-AI Copilot'}
                 </Link>
               </li>
               <li>

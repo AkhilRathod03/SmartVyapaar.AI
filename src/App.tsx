@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { LanguageProvider } from './context/LanguageContext';
 import { Navbar } from './components/common/Navbar';
 import { Footer } from './components/common/Footer';
@@ -132,7 +132,7 @@ export const App: React.FC = () => {
           <Route path="/shopkeeper" element={<ShopkeeperDashboardLayout />}>
             <Route index element={<ShopOverview />} />
             <Route path="mana-ai" element={<ManaAiPage />} />
-            <Route path="ai-assistant" element={<ShopAIAssistant />} />
+            <Route path="ai-assistant" element={<Navigate to="/shopkeeper/mana-ai" replace />} />
             <Route path="inventory" element={<InventoryManagement />} />
             <Route path="orders" element={<OrdersManagement />} />
             <Route path="khata" element={<KhataManagement />} />
