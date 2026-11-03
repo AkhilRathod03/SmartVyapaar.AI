@@ -11,7 +11,7 @@ interface LanguageContextType {
 const translations: Record<Language, Record<string, string>> = {
   en: {
     // Brand & Navigation
-    brandName: 'SMARTVYAPAAR.AI',
+    brandName: 'impulx.ai',
     brandTagline: 'Local Neighborhood Stores',
     home: 'Home',
     findProducts: 'Find Products',
@@ -163,7 +163,7 @@ const translations: Record<Language, Record<string, string>> = {
 
   te: {
     // Brand & Navigation
-    brandName: 'SMARTVYAPAAR.AI',
+    brandName: 'impulx.ai',
     brandTagline: 'దగ్గర్లోని కిరాణా దుకాణాలు',
     home: 'హోమ్',
     findProducts: 'సరుకులు వెతకండి',
@@ -315,7 +315,7 @@ const translations: Record<Language, Record<string, string>> = {
 
   hi: {
     // Brand & Navigation
-    brandName: 'SMARTVYAPAAR.AI',
+    brandName: 'impulx.ai',
     brandTagline: 'पास की किराना दुकानें',
     home: 'होम',
     findProducts: 'सामान खोजें',

@@ -1,10 +1,10 @@
-# SMARTVYAPAAR.AI (స్మార్ట్ వ్యాపార్ / स्मार्ट व्यापार) — Autonomous Local Commerce & Digital Khata Intelligence
+# impulx.ai (ఇంపల్క్స్ AI / इम्पल्क्स AI) — Autonomous Local Commerce & 24/7 Voice AI Dispatcher
 
 > **"Find what you need from your local shops — just speak or ask."**  
 > *"మీ దగ్గర్లోని దుకాణాలలో మీకు కావాల్సిన సరుకులు వెతకండి — అడగండి చాలు."*  
 > *"अपनी पास की दुकान से जो चाहिए खोजें — बस बोलिए या पूछिए।"*
 
-**SMARTVYAPAAR.AI** connects neighborhood kirana and general stores with nearby customers. Small retailers can digitize their inventory, track customer Khata (udhar/jama), and log daily expenses using natural voice or text in **Telugu, Hindi, or English** without complicated software. Shopkeepers can also consult **Mana-AI** for automated PDF stock audits, customer statements, and revenue breakdown.
+**impulx.ai** connects neighborhood kirana and general stores with nearby customers. Features a 24/7 AI Voice Dispatcher for hands-free order fulfillment, natural trilingual conversational intelligence, real-time live customer sync, and customer khata with instant UPI payment.
 
 Developed by **Akhil Kumar** ([@AkhilRathod03](https://github.com/AkhilRathod03)).
 
@@ -150,4 +150,4 @@ This repository includes `public/_redirects`:
 
 ---
 
-© 2026 SMARTVYAPAAR.AI. Designed & Developed by **Akhil Kumar** ([@AkhilRathod03](https://github.com/AkhilRathod03)).
+© 2026 impulx.ai. Designed & Developed by **Akhil Kumar** ([@AkhilRathod03](https://github.com/AkhilRathod03)).
