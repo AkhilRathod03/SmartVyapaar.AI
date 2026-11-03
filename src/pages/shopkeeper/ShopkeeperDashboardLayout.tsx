@@ -57,7 +57,6 @@ export const ShopkeeperDashboardLayout: React.FC = () => {
           : 'Mana-AI Copilot',
       icon: Bot,
       highlight: true,
-      badgeText: 'AI',
     },
     {
       path: '/shopkeeper/inventory',
@@ -167,12 +166,6 @@ export const ShopkeeperDashboardLayout: React.FC = () => {
                   <Icon className={`w-4 h-4 ${active ? 'text-white' : item.highlight ? 'text-emerald-400' : 'text-slate-400'}`} />
                   <span>{item.label}</span>
                 </div>
-
-                {item.badgeText && (
-                  <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/30 text-emerald-300 border border-emerald-500/50 font-black text-[9px] uppercase tracking-wider">
-                    {item.badgeText}
-                  </span>
-                )}
 
                 {item.badgeKey === 'orders' && pendingOrdersCount > 0 && (
                   <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] flex items-center justify-center">
