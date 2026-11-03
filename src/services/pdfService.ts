@@ -678,7 +678,7 @@ export class PDFService {
     doc.setFontSize(7.5);
     doc.setTextColor(148, 163, 184);
     doc.text(
-      'Document automatically prepared by Mana-AI Business Intelligence • SMARTVYAPAAR.AI Platform',
+      'Document automatically prepared by Mana-AI Business Intelligence • impulx.ai Platform',
       14,
       285
     );

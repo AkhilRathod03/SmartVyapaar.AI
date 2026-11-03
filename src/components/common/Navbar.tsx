@@ -12,6 +12,7 @@ import {
   ChevronDown,
   Globe,
   Mic,
+  BookOpen,
 } from 'lucide-react';
 import { storage } from '../../services/storageService';
 import { LocationModal } from './LocationModal';
@@ -158,6 +159,17 @@ export const Navbar: React.FC = () => {
                   </span>
                 )}
               </Link>
+              <Link
+                to="/my-khata"
+                className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 ${
+                  location.pathname === '/my-khata' || location.pathname === '/customer/khata'
+                    ? 'text-emerald-800 bg-emerald-50'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                <BookOpen className="w-4 h-4 text-emerald-600" />
+                <span>{language === 'te' ? 'నా ఖాతా & చెల్లింపులు' : language === 'hi' ? 'मेरा खाता व भुगतान' : 'My Khata & Pay'}</span>
+              </Link>
             </nav>
 
             {/* Right: Switcher (Customer vs Shopkeeper) & Actions */}
@@ -277,6 +289,14 @@ export const Navbar: React.FC = () => {
                   {ordersCount}
                 </span>
               )}
+            </Link>
+            <Link
+              to="/my-khata"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100"
+            >
+              <BookOpen className="w-4 h-4 text-emerald-600" />
+              <span>{language === 'te' ? 'నా ఖాతా & చెల్లింపులు' : language === 'hi' ? 'मेरा खाता व भुगतान' : 'My Khata & Pay'}</span>
             </Link>
             <Link
               to="/shopkeeper"

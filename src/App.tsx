@@ -13,6 +13,7 @@ import { ShopDetailPage } from './pages/customer/ShopDetailPage';
 import { OrderCheckoutPage } from './pages/customer/OrderCheckoutPage';
 import { OrderStatusPage } from './pages/customer/OrderStatusPage';
 import { CustomerOrdersListPage } from './pages/customer/CustomerOrdersListPage';
+import { CustomerKhataPage } from './pages/customer/CustomerKhataPage';
 
 // Shopkeeper Pages
 import { ShopkeeperDashboardLayout } from './pages/shopkeeper/ShopkeeperDashboardLayout';
@@ -107,6 +108,22 @@ export const App: React.FC = () => {
             element={
               <CustomerShell>
                 <CustomerOrdersListPage />
+              </CustomerShell>
+            }
+          />
+          <Route
+            path="/my-khata"
+            element={
+              <CustomerShell>
+                <CustomerKhataPage />
+              </CustomerShell>
+            }
+          />
+          <Route
+            path="/customer/khata"
+            element={
+              <CustomerShell>
+                <CustomerKhataPage />
               </CustomerShell>
             }
           />
