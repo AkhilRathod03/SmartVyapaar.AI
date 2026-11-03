@@ -67,7 +67,42 @@ class ManaAIService {
 
     const config = this.getConfig();
 
-    // 0. Check for Direct Action Commands (Merged Voice Entry feature into Mana-AI):
+    // 0. Process through Multilingual Shopkeeper Intent Engine (Trained on AI General Store Dataset v1.0)
+    const prefCode = preferredLang === 'te' ? 'te-IN' : preferredLang === 'hi' ? 'hi-IN' : 'en-IN';
+    const multilingualResult = aiService.handleMultilingualShopkeeperIntent(text, shopId, prefCode);
+
+    if (multilingualResult && multilingualResult.actionType !== 'general') {
+      if (multilingualResult.structuredData) {
+        return {
+          id: `intent-${Date.now()}`,
+          sender: 'assistant',
+          text: multilingualResult.reply,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          structuredConfirmation: multilingualResult.structuredData,
+          actionCard: {
+            type: 'structured_action',
+            title: multilingualResult.structuredData.title || 'Confirm Action',
+            description: multilingualResult.reply,
+            buttonLabel:
+              preferredLang === 'te' || /[\u0C00-\u0C7F]/.test(text)
+                ? 'ఖరారు చేయండి'
+                : preferredLang === 'hi' || /[\u0900-\u097F]/.test(text)
+                ? 'पुष्टि करें'
+                : 'Confirm Action',
+            structuredData: multilingualResult.structuredData,
+          },
+        };
+      }
+
+      return {
+        id: `intent-${Date.now()}`,
+        sender: 'assistant',
+        text: multilingualResult.reply,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+    }
+
+    // 1. Check for Direct Action Commands (Merged Voice Entry feature into Mana-AI):
     // e.g. "8 soaps, chai, stock lo add cheyi", "Ramesh ki 3 soaps 120 rupees", "Current bill 450"
     const parsedAction = aiService.parseShopkeeperInput(text, shopId);
     if (

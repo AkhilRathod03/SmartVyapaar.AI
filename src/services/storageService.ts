@@ -509,6 +509,70 @@ class StorageService {
         });
         return true;
       }
+
+      if (type === 'remove_inventory' && payload.productName && payload.quantity) {
+        const existing = this.getInventory(shopId);
+        const found = existing.find(
+          (inv) =>
+            inv.productName.toLowerCase().includes(payload.productName.toLowerCase()) ||
+            payload.productName.toLowerCase().includes(inv.productName.toLowerCase())
+        );
+        if (found) {
+          const newQty = Math.max(0, found.quantity - payload.quantity);
+          this.updateInventoryItem({
+            ...found,
+            quantity: newQty,
+            status: newQty === 0 ? 'out_of_stock' : newQty <= found.minStockLevel ? 'low_stock' : 'in_stock',
+          });
+          return true;
+        }
+      }
+
+      if (type === 'update_stock' && payload.productName && payload.quantity !== undefined) {
+        const existing = this.getInventory(shopId);
+        const found = existing.find(
+          (inv) =>
+            inv.productName.toLowerCase().includes(payload.productName.toLowerCase()) ||
+            payload.productName.toLowerCase().includes(inv.productName.toLowerCase())
+        );
+        if (found) {
+          this.updateInventoryItem({
+            ...found,
+            quantity: payload.quantity,
+            status: payload.quantity === 0 ? 'out_of_stock' : payload.quantity <= found.minStockLevel ? 'low_stock' : 'in_stock',
+          });
+          return true;
+        }
+      }
+
+      if (type === 'set_price' && payload.productName && payload.price) {
+        const existing = this.getInventory(shopId);
+        const found = existing.find(
+          (inv) =>
+            inv.productName.toLowerCase().includes(payload.productName.toLowerCase()) ||
+            payload.productName.toLowerCase().includes(inv.productName.toLowerCase())
+        );
+        if (found) {
+          this.updateInventoryItem({
+            ...found,
+            price: payload.price,
+          });
+          return true;
+        }
+      }
+
+      if (type === 'return_item' && payload.productName && payload.quantity) {
+        const existing = this.getInventory(shopId);
+        const found = existing.find(
+          (inv) =>
+            inv.productName.toLowerCase().includes(payload.productName.toLowerCase()) ||
+            payload.productName.toLowerCase().includes(inv.productName.toLowerCase())
+        );
+        if (found) {
+          this.adjustStock(found.id, payload.quantity);
+          return true;
+        }
+      }
     } catch (e) {
       console.error('Error executing structured action:', e);
     }
