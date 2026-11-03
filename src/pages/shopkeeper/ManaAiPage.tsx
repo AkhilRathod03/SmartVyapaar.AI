@@ -28,9 +28,11 @@ import { useLanguage } from '../../context/LanguageContext';
 
 export const ManaAiPage: React.FC = () => {
   const shop = storage.getShopById('shop-1') || storage.getShops()[0];
-  const { t, language, setLanguage } = useLanguage();
+  const { t, language } = useLanguage();
+  // Keep page language strictly local to ManaAiPage so sidebar navigation language is never altered
+  const [pageLang, setPageLang] = useState<'en' | 'te' | 'hi'>(() => language);
 
-  const getWelcomeMessage = (lang: 'en' | 'te' | 'hi' = language): ManaAIMessage => ({
+  const getWelcomeMessage = (lang: 'en' | 'te' | 'hi' = pageLang): ManaAIMessage => ({
     id: 'welcome-1',
     sender: 'assistant',
     text:
@@ -90,7 +92,7 @@ Ask me anything about your shop:
     },
   });
 
-  const [messages, setMessages] = useState<ManaAIMessage[]>([getWelcomeMessage(language)]);
+  const [messages, setMessages] = useState<ManaAIMessage[]>([getWelcomeMessage(pageLang)]);
   const [input, setInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -102,7 +104,7 @@ Ask me anything about your shop:
   const [interimTranscript, setInterimTranscript] = useState('');
   const [speechError, setSpeechError] = useState<string | null>(null);
   const [selectedVoiceLang, setSelectedVoiceLang] = useState<'te-IN' | 'hi-IN' | 'en-IN'>(
-    language === 'te' ? 'te-IN' : language === 'hi' ? 'hi-IN' : 'en-IN'
+    pageLang === 'te' ? 'te-IN' : pageLang === 'hi' ? 'hi-IN' : 'en-IN'
   );
   const [isSpeakingId, setIsSpeakingId] = useState<string | null>(null);
 
@@ -113,7 +115,8 @@ Ask me anything about your shop:
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const handleLanguageChange = (newLang: 'en' | 'te' | 'hi') => {
-    setLanguage(newLang);
+    // Keep local to ManaAiPage so sidebar UI language is never modified
+    setPageLang(newLang);
     setSelectedVoiceLang(newLang === 'te' ? 'te-IN' : newLang === 'hi' ? 'hi-IN' : 'en-IN');
     if (messages.length <= 1) {
       setMessages([getWelcomeMessage(newLang)]);
@@ -121,6 +124,7 @@ Ask me anything about your shop:
   };
 
   useEffect(() => {
+    setPageLang(language);
     setSelectedVoiceLang(language === 'te' ? 'te-IN' : language === 'hi' ? 'hi-IN' : 'en-IN');
   }, [language]);
 
@@ -166,9 +170,9 @@ Ask me anything about your shop:
     );
 
     const successVoice =
-      language === 'te'
+      pageLang === 'te'
         ? 'విజయవంతంగా రికార్డులలో సేవ్ చేయబడింది!'
-        : language === 'hi'
+        : pageLang === 'hi'
         ? 'सफलतापूर्वक सुरक्षित कर लिया गया!'
         : 'Successfully saved to store records!';
 
@@ -246,9 +250,9 @@ Ask me anything about your shop:
         setIsProcessing(false);
         handleCancelAction(pendingMsg.id);
         const cancelReply =
-          language === 'te'
+          pageLang === 'te'
             ? 'రద్దు చేయబడింది.'
-            : language === 'hi'
+            : pageLang === 'hi'
             ? 'रद्द कर दिया गया।'
             : 'Pending action cancelled.';
         const cancelAiMsg: ManaAIMessage = {
@@ -263,7 +267,7 @@ Ask me anything about your shop:
     }
 
     try {
-      const response = await manaAiService.askShopkeeperCopilot(raw, shop.id, language);
+      const response = await manaAiService.askShopkeeperCopilot(raw, shop.id, pageLang);
       setMessages((prev) => [...prev, response]);
 
       // Automatically speak the response text if user interacted by voice
@@ -283,9 +287,9 @@ Ask me anything about your shop:
           id: `ai-err-${Date.now()}`,
           sender: 'assistant',
           text:
-            language === 'te'
+            pageLang === 'te'
               ? 'AI బ్రెయిన్ కనెక్ట్ కావడంలో సమస్య వచ్చింది. దయచేసి మళ్ళీ ప్రయత్నించండి.'
-              : language === 'hi'
+              : pageLang === 'hi'
               ? 'AI से संपर्क करने में समस्या आई। कृपया पुनः प्रयास करें।'
               : 'I ran into an issue connecting to the AI brain. Please try again or ask with different wording.',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -330,9 +334,9 @@ Ask me anything about your shop:
 
     if (!SpeechRecognition) {
       setSpeechError(
-        language === 'te'
+        pageLang === 'te'
           ? 'మీ బ్రౌజర్ లో వాయిస్ సపోర్ట్ లేదు. దయచేసి Google Chrome లేదా Edge వాడండి.'
-          : language === 'hi'
+          : pageLang === 'hi'
           ? 'आपके ब्राउज़र में वॉइस सपोर्ट नहीं है। कृपया Google Chrome उपयोग करें।'
           : 'Voice input requires Google Chrome or Microsoft Edge.'
       );
@@ -403,9 +407,9 @@ Ask me anything about your shop:
         if (event.error === 'not-allowed' || event.error === 'permission-denied') {
           setIsListening(false);
           setSpeechError(
-            language === 'te'
+            pageLang === 'te'
               ? 'మైక్రోఫోన్ అనుమతి నిరాకరించబడింది. బ్రౌజర్ లో మైక్ పర్మిషన్ Allow చేయండి.'
-              : language === 'hi'
+              : pageLang === 'hi'
               ? 'माइक्रोफ़ोन अनुमति नहीं मिली। कृपया ब्राउज़र में अनुमति दें।'
               : 'Microphone permission denied. Please allow microphone access in your browser.'
           );
@@ -413,9 +417,9 @@ Ask me anything about your shop:
           if (!transcriptRef.current && !input) {
             setIsListening(false);
             setSpeechError(
-              language === 'te'
+              pageLang === 'te'
                 ? 'ఏమీ వినబడలేదు. దయచేసి మైక్ దగ్గర స్పష్టంగా మాట్లాడండి.'
-                : language === 'hi'
+                : pageLang === 'hi'
                 ? 'कोई आवाज़ सुनाई नहीं दी। कृपया माइक के पास साफ़ बोलें।'
                 : 'No speech detected. Please speak clearly into your microphone.'
             );
@@ -535,8 +539,8 @@ Ask me anything about your shop:
   ];
 
   const getPromptText = (p: (typeof samplePrompts)[0]) => {
-    if (language === 'te') return p.textTe;
-    if (language === 'hi') return p.textHi;
+    if (pageLang === 'te') return p.textTe;
+    if (pageLang === 'hi') return p.textHi;
     return p.textEn;
   };
 
@@ -552,13 +556,13 @@ Ask me anything about your shop:
             <div className="flex items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-black tracking-tight">Mana-AI</h1>
               <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full">
-                {language === 'te' ? 'మన బిజినెస్ AI' : language === 'hi' ? 'हमारा बिजनेस AI' : 'Business Copilot'}
+                {pageLang === 'te' ? 'మన బిజినెస్ AI' : pageLang === 'hi' ? 'हमारा बिजनेस AI' : 'Business Copilot'}
               </span>
             </div>
             <p className="text-xs text-slate-300 mt-0.5">
-              {language === 'te'
+              {pageLang === 'te'
                 ? 'స్టాక్, కస్టమర్ల బాకీ, సేల్స్ గురించి అడగండి & క్షణాల్లో PDF రిపోర్ట్ పొందండి.'
-                : language === 'hi'
+                : pageLang === 'hi'
                 ? 'स्टॉक, ग्राहकों के उधार, बिक्री की जानकारी पूछें और तुरंत PDF रिपोर्ट पाएं।'
                 : 'Ask questions about stock, customers, or sales & generate instant PDF reports.'}
             </p>
@@ -572,7 +576,7 @@ Ask me anything about your shop:
             <Globe className="w-3.5 h-3.5 text-emerald-400 absolute left-2.5 pointer-events-none" />
             <select
               id="mana-ai-lang-select"
-              value={language}
+              value={pageLang}
               onChange={(e) => handleLanguageChange(e.target.value as 'en' | 'te' | 'hi')}
               className="appearance-none bg-slate-800/95 hover:bg-slate-700/90 text-white text-xs font-bold pl-8 pr-7 py-2 rounded-xl border border-slate-700 hover:border-emerald-500/70 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer transition shadow-sm"
               title="Select AI Language"
@@ -870,7 +874,7 @@ Ask me anything about your shop:
                   onClick={() => commitSpeech()}
                   className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl font-bold shadow-sm transition flex items-center gap-1"
                 >
-                  <span>{language === 'te' ? 'పంపు' : language === 'hi' ? 'भेजें' : 'Send'}</span>
+                  <span>{pageLang === 'te' ? 'పంపు' : pageLang === 'hi' ? 'भेजें' : 'Send'}</span>
                   <Send className="w-3 h-3" />
                 </button>
                 <button
@@ -908,9 +912,9 @@ Ask me anything about your shop:
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={
-                language === 'te'
+                pageLang === 'te'
                   ? 'Mana-AI ని అడగండి (ఉదా: "నిన్నటి అమ్మకాల వివరాలు చూపి PDF రాయి")...'
-                  : language === 'hi'
+                  : pageLang === 'hi'
                   ? 'Mana-AI से पूछें (जैसे: "कल और आज की बिक्री का PDF दो" या "स्टॉक रिपोर्ट")...'
                   : 'Ask Mana-AI (e.g. "What stock is low? Give me a PDF" or "How much did Ramesh spend?")...'
               }
@@ -921,7 +925,7 @@ Ask me anything about your shop:
             <div className="relative hidden sm:inline-flex items-center">
               <Globe className="w-3 h-3 text-emerald-600 absolute left-2 pointer-events-none" />
               <select
-                value={language}
+                value={pageLang}
                 onChange={(e) => handleLanguageChange(e.target.value as 'en' | 'te' | 'hi')}
                 className="appearance-none bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold pl-6 pr-6 py-2 rounded-xl border border-slate-200 hover:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer transition shadow-sm"
                 aria-label="Select Voice Language"

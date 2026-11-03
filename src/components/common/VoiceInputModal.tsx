@@ -173,9 +173,7 @@ export const VoiceInputModal: React.FC<VoiceInputModalProps> = ({
 
   const handleLangDropdownChange = (newLang: 'te-IN' | 'hi-IN' | 'en-IN') => {
     setSelectedVoiceLang(newLang);
-    if (newLang === 'te-IN') setLanguage('te');
-    else if (newLang === 'hi-IN') setLanguage('hi');
-    else setLanguage('en');
+    // Voice language changes in this modal must NOT affect navbar/sidebar language!
   };
 
   return (

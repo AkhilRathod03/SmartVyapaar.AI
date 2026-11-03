@@ -22,6 +22,96 @@ import { storage } from '../../services/storageService';
 import { Order, OrderStatus } from '../../types';
 import { useLanguage, Language } from '../../context/LanguageContext';
 
+// Product name localization for UI pill tags
+export const getLocalizedProductName = (
+  productName: string,
+  lang: 'te-IN' | 'hi-IN' | 'en-IN'
+): string => {
+  const p = productName.toLowerCase();
+  const isTe = lang === 'te-IN';
+  const isHi = lang === 'hi-IN';
+
+  if (p.includes('tube light')) {
+    if (isTe) return 'ఫిలిప్స్ ట్యూబ్ లైట్ (Philips T5 Tube Light)';
+    if (isHi) return 'फिलिप्स ट्यूब लाइट (Philips Tube Light)';
+  }
+  if (p.includes('led') || p.includes('bulb')) {
+    if (isTe) return 'ఫిలిప్స్ ఎల్‌ఈడీ బల్బ్ (Philips LED Bulb 9W)';
+    if (isHi) return 'फिलिप्स एलईडी बल्ब (Philips LED Bulb 9W)';
+  }
+  if (p.includes('surf excel') || p.includes('detergent') || p.includes('quick wash')) {
+    if (isTe) return 'సర్ఫ్ ఎక్సెల్ సర్ఫ్ పౌడర్ (Surf Excel 1kg)';
+    if (isHi) return 'सर्फ एक्सेल वॉशिंग पाउडर (Surf Excel 1kg)';
+  }
+  if (p.includes('oil') || p.includes('sunflower')) {
+    if (isTe) return 'ఫ్రీడమ్ సన్‌ఫ్లవర్ నూనె (Sunflower Oil 1L)';
+    if (isHi) return 'सनफ्लावर तेल (Sunflower Oil 1L)';
+  }
+  if (p.includes('rice') || p.includes('sona masoori')) {
+    if (isTe) return 'సోనా మసూరి బియ్యం (Sona Masoori Rice 25kg)';
+    if (isHi) return 'सोना मसूरी चावल (Sona Masoori Rice 25kg)';
+  }
+  if (p.includes('soap') || p.includes('lifebuoy') || p.includes('lux')) {
+    if (p.includes('lux')) {
+      if (isTe) return 'లక్స్ సబ్బు (Lux Glow Soap)';
+      if (isHi) return 'लक्स साबुन (Lux Soap)';
+    }
+    if (isTe) return 'లైఫ్‌బాయ్ సబ్బులు (Lifebuoy Soaps)';
+    if (isHi) return 'लाइफबॉय साबुन (Lifebuoy Soap)';
+  }
+  if (p.includes('milk') || p.includes('heritage')) {
+    if (isTe) return 'హెరిటేజ్ టోన్డ్ పాలు (Heritage Milk 500ml)';
+    if (isHi) return 'दूध पैकेट (Heritage Milk 500ml)';
+  }
+  if (p.includes('tea') || p.includes('red label') || p.includes('chai')) {
+    if (isTe) return 'రెడ్ లేబుల్ టీ పొడి (Red Label Tea 250g)';
+    if (isHi) return 'रेड लेबल चाय पत्ती (Red Label Tea 250g)';
+  }
+  if (p.includes('salt') || p.includes('tata salt')) {
+    if (isTe) return 'టాటా ఉప్పు (Tata Salt 1kg)';
+    if (isHi) return 'टाटा नमक (Tata Salt 1kg)';
+  }
+  if (p.includes('biscuit') || p.includes('marie gold') || p.includes('parle')) {
+    if (isTe) return 'బ్రిటానియా బిస్కెట్లు (Marie Gold Biscuits)';
+    if (isHi) return 'ब्रिटानिया बिस्कुट (Marie Gold Biscuits)';
+  }
+  return productName;
+};
+
+// Conversational product names for natural spoken Telugu/Hindi audio
+export const getSpokenProductName = (
+  productName: string,
+  lang: 'te-IN' | 'hi-IN' | 'en-IN'
+): string => {
+  const p = productName.toLowerCase();
+  if (lang === 'te-IN') {
+    if (p.includes('tube light')) return 'ట్యూబ్ లైట్లు';
+    if (p.includes('led') || p.includes('bulb')) return 'ఎల్‌ఈడీ బల్బులు';
+    if (p.includes('surf excel') || p.includes('detergent') || p.includes('quick wash')) return 'సర్ఫ్ ఎక్సెల్ సర్ఫ్ ప్యాకెట్';
+    if (p.includes('oil') || p.includes('sunflower')) return 'సన్‌ఫ్లవర్ నూనె';
+    if (p.includes('rice')) return 'బియ్యం బస్తా';
+    if (p.includes('lux')) return 'లక్స్ సబ్బులు';
+    if (p.includes('soap') || p.includes('lifebuoy')) return 'సబ్బులు';
+    if (p.includes('milk')) return 'పాల ప్యాకెట్లు';
+    if (p.includes('tea') || p.includes('chai')) return 'టీ పొడి';
+    if (p.includes('salt')) return 'ఉప్పు ప్యాకెట్';
+    if (p.includes('biscuit')) return 'బిస్కెట్లు';
+  }
+  if (lang === 'hi-IN') {
+    if (p.includes('tube light')) return 'ट्यूब लाइट';
+    if (p.includes('led') || p.includes('bulb')) return 'एलईडी बल्ब';
+    if (p.includes('surf excel')) return 'सर्फ एक्सेल पैकेट';
+    if (p.includes('oil')) return 'तेल पैकेट';
+    if (p.includes('rice')) return 'चावल बोरी';
+    if (p.includes('soap')) return 'साबुन';
+    if (p.includes('milk')) return 'दूध';
+    if (p.includes('tea') || p.includes('chai')) return 'चाय पत्ती';
+    if (p.includes('salt')) return 'नमक';
+    if (p.includes('biscuit')) return 'बिस्कुट';
+  }
+  return productName;
+};
+
 interface Shopkeeper24x7VoiceAssistantProps {
   shopId?: string;
 }
@@ -29,7 +119,7 @@ interface Shopkeeper24x7VoiceAssistantProps {
 export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistantProps> = ({
   shopId = 'shop-1',
 }) => {
-  const { language, setLanguage, t } = useLanguage();
+  const { language, t } = useLanguage();
   const shop = storage.getShopById(shopId) || storage.getShops()[0];
 
   const [orders, setOrders] = useState<Order[]>(() => storage.getOrders(shop.id));
@@ -55,6 +145,7 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
   });
 
   const recognitionRef = useRef<any>(null);
+  const isRecognitionRunningRef = useRef<boolean>(false);
   const announcedOrderIdsRef = useRef<Set<string>>(new Set());
   const transcriptRef = useRef<string>('');
   const silenceTimerRef = useRef<any>(null);
@@ -64,15 +155,13 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
   const isVoiceActiveRef = useRef<boolean>(true);
   const isManuallyPausedRef = useRef<boolean>(false);
 
-  // Persist voice language
+  // Persist voice language strictly for Voice Engine without altering navbar/sidebar UI language
   const handleSelectVoiceLang = (newLang: 'te-IN' | 'hi-IN' | 'en-IN') => {
     setVoiceLang(newLang);
     try {
       localStorage.setItem('impulx_shopkeeper_voice_lang', newLang);
     } catch {}
-    if (newLang === 'te-IN') setLanguage('te');
-    else if (newLang === 'hi-IN') setLanguage('hi');
-    else setLanguage('en');
+    // IMPORTANT: Do NOT call setLanguage()! Keeps sidebar language independent!
 
     const greeting =
       newLang === 'te-IN'
@@ -116,35 +205,75 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
     } catch {}
   };
 
-  // Text-To-Speech with Dynamic Language Voice
+  // Text-To-Speech with Dynamic Language Voice and Automatic 2-Way Resume
   const speakAI = (text: string, onEnd?: () => void, targetLangCode?: 'te-IN' | 'hi-IN' | 'en-IN') => {
     if (isSoundMuted || !('speechSynthesis' in window)) {
       onEnd?.();
+      if (isVoiceActiveRef.current && !isManuallyPausedRef.current) {
+        startListening();
+      }
       return;
     }
     try {
       window.speechSynthesis.cancel();
+      // Stop recognition while speaking so mic does not pick up its own voice
+      if (recognitionRef.current && isRecognitionRunningRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {}
+        isRecognitionRunningRef.current = false;
+      }
+
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = targetLangCode || voiceLang;
+      const targetLang = targetLangCode || voiceLang;
+      utterance.lang = targetLang;
       utterance.rate = 0.95;
       utterance.pitch = 1.05;
+
+      const voices = window.speechSynthesis.getVoices();
+      if (targetLang === 'te-IN') {
+        const teluguVoice = voices.find(
+          (v) => v.lang.startsWith('te') || v.name.toLowerCase().includes('telugu')
+        );
+        if (teluguVoice) utterance.voice = teluguVoice;
+      } else if (targetLang === 'hi-IN') {
+        const hindiVoice = voices.find(
+          (v) => v.lang.startsWith('hi') || v.name.toLowerCase().includes('hindi')
+        );
+        if (hindiVoice) utterance.voice = hindiVoice;
+      }
 
       isSpeakingRef.current = true;
       setLastSpokenText(text);
 
-      utterance.onend = () => {
+      let isDone = false;
+      const handleDone = () => {
+        if (isDone) return;
+        isDone = true;
         isSpeakingRef.current = false;
         onEnd?.();
+        // Immediately resume listening for unbroken 2-way continuous talk
+        if (isVoiceActiveRef.current && !isManuallyPausedRef.current) {
+          setTimeout(() => {
+            startListening();
+          }, 200);
+        }
       };
-      utterance.onerror = () => {
-        isSpeakingRef.current = false;
-        onEnd?.();
-      };
+
+      utterance.onend = handleDone;
+      utterance.onerror = handleDone;
+
+      // Safety timer if browser speechSynthesis onend hangs
+      const expectedMs = Math.max(2200, (text.length / 8) * 1000);
+      setTimeout(handleDone, expectedMs);
 
       window.speechSynthesis.speak(utterance);
     } catch {
       isSpeakingRef.current = false;
       onEnd?.();
+      if (isVoiceActiveRef.current && !isManuallyPausedRef.current) {
+        startListening();
+      }
     }
   };
 
@@ -156,14 +285,19 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
         recognitionRef.current.abort();
       } catch {}
     }
+    isRecognitionRunningRef.current = false;
     setIsListening(false);
   };
 
   // Start continuous speech recognition
   const startListening = () => {
-    // If user has manually paused the mic, never start listening!
-    if (!isVoiceActiveRef.current || isManuallyPausedRef.current) {
+    // If user has manually paused the mic, or AI is currently speaking, never start listening!
+    if (!isVoiceActiveRef.current || isManuallyPausedRef.current || isSpeakingRef.current) {
       setIsListening(false);
+      return;
+    }
+
+    if (isRecognitionRunningRef.current) {
       return;
     }
 
@@ -173,12 +307,6 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
     if (!SpeechRecognition) return;
 
     try {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.abort();
-        } catch {}
-      }
-
       transcriptRef.current = '';
       setInterimTranscript('');
 
@@ -189,6 +317,7 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
       recognitionRef.current = recognition;
 
       recognition.onstart = () => {
+        isRecognitionRunningRef.current = true;
         setIsListening(true);
       };
 
@@ -212,38 +341,45 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
           transcriptRef.current = currentText;
           setInterimTranscript(currentText);
 
-          // Auto-commit debounce: after 900ms silence, process spoken voice command
+          // Fast debounce (650ms) to respond promptly
           if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
           silenceTimerRef.current = setTimeout(() => {
             if (transcriptRef.current.trim().length > 1) {
               handleProcessShopkeeperVoice(transcriptRef.current.trim());
             }
-          }, 900);
+          }, 650);
         }
       };
 
       recognition.onerror = (e: any) => {
-        if (e.error !== 'no-speech') {
-          console.warn('Speech recognition status:', e.error);
+        if (e.error === 'not-allowed') {
+          isManuallyPausedRef.current = true;
+          setIsListening(false);
         }
+        isRecognitionRunningRef.current = false;
       };
 
       recognition.onend = () => {
+        isRecognitionRunningRef.current = false;
         setIsListening(false);
-        // Explicitly check ref: only restart if NOT manually paused
-        if (isVoiceActiveRef.current && !isManuallyPausedRef.current && activeVoiceOrder && !isDismissedManual) {
+        // Unbroken 24/7 continuous listening: always restart as long as mic is not manually paused!
+        if (isVoiceActiveRef.current && !isManuallyPausedRef.current && !isSpeakingRef.current) {
           setTimeout(() => {
             try {
-              if (isVoiceActiveRef.current && !isManuallyPausedRef.current && activeVoiceOrder) {
+              if (isVoiceActiveRef.current && !isManuallyPausedRef.current && !isSpeakingRef.current) {
                 startListening();
               }
             } catch {}
-          }, 300);
+          }, 200);
         }
       };
 
       recognition.start();
-    } catch {}
+      isRecognitionRunningRef.current = true;
+      setIsListening(true);
+    } catch {
+      isRecognitionRunningRef.current = false;
+    }
   };
 
   // Toggle Mic Button: completely pauses and prevents reactivation
@@ -253,6 +389,10 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
       isManuallyPausedRef.current = true;
       setIsVoiceActive(false);
       stopListening();
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      isSpeakingRef.current = false;
       setAssistantStatus('Microphone paused manually (Mic Off)');
     } else {
       isVoiceActiveRef.current = true;
@@ -269,9 +409,13 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
       const allOrders = storage.getOrders(shop.id);
       setOrders(allOrders);
 
-      // Check for an actionable order (request_sent > preparing > ready)
+      // Check for an actionable order (request_sent > shop_accepted > preparing > ready)
       const pendingOrder = allOrders.find(
-        (o) => o.status === 'request_sent' || o.status === 'preparing' || o.status === 'ready'
+        (o) =>
+          o.status === 'request_sent' ||
+          o.status === 'shop_accepted' ||
+          o.status === 'preparing' ||
+          o.status === 'ready'
       );
 
       if (pendingOrder) {
@@ -283,14 +427,19 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
           announcedOrderIdsRef.current.add(pendingOrder.id);
           playKiranaDoorbellChime();
 
-          const itemsSummary = pendingOrder.items.map((i) => `${i.quantity} ${i.productName}`).join(', ');
+          const spokenItemsSummary = pendingOrder.items
+            .map((i) => {
+              const spokenName = getSpokenProductName(i.productName, voiceLang);
+              return `${i.quantity} ${spokenName}`;
+            })
+            .join(', ');
 
           const promptText =
             voiceLang === 'te-IN'
-              ? `నమస్కారం! ${pendingOrder.customerName} నుండి కొత్త ఆర్డర్ వచ్చింది: ${itemsSummary}. మీ దగ్గర ఈ సరుకులు ఉన్నాయా? ప్యాక్ చేయడానికి రెడీగా ఉన్నారా?`
+              ? `నమస్కారం అండి! ${pendingOrder.customerName} నుండి కొత్త ఆర్డర్ వచ్చింది. కావాల్సినవి: ${spokenItemsSummary}. మొత్తం ₹${pendingOrder.total}. మీ దగ్గర ఈ సరుకులు అందుబాటులో ఉన్నాయా? ఆర్డర్ అంగీకరిస్తారా?`
               : voiceLang === 'hi-IN'
-              ? `नमस्ते! ${pendingOrder.customerName} से नया ऑर्डर आया है: ${itemsSummary}। क्या यह सामान उपलब्ध है? क्या आप पैक करने के लिए तैयार हैं?`
-              : `Hey! You got a new order from ${pendingOrder.customerName} for ${itemsSummary}. Are these items available with you and ready for packing?`;
+              ? `नमस्ते जी! ${pendingOrder.customerName} से नया ऑर्डर आया है: ${spokenItemsSummary}। कुल राशि ₹${pendingOrder.total}। क्या यह सामान उपलब्ध है? क्या आप ऑर्डर स्वीकार करते हैं?`
+              : `Hey! You got a new order from ${pendingOrder.customerName} for ${spokenItemsSummary}. Total ₹${pendingOrder.total}. Are these items available with you and ready to accept?`;
 
           setAssistantStatus(
             voiceLang === 'te-IN'
@@ -477,39 +626,16 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
     // Detect language of spoken response
     const detected = detectSpokenDialect(spokenText);
 
-    // STAGE 2: ALREADY PACKED / WAITING FOR DELIVERY PARTNER
-    // Understands accents & phrases like:
-    // "na items unnai nae gara, it has been packed", "Back Cheshna orders delivery ready undi", "packed and ready"
-    const isPackedReadyForPartner =
-      lower.includes('it has been packed') ||
-      lower.includes('already packed') ||
-      lower.includes('back cheshna') ||
-      lower.includes('pack cheshna') ||
-      lower.includes('back chesina') ||
-      lower.includes('pack chesina') ||
-      lower.includes('bag chesna') ||
-      lower.includes('pack chesa') ||
-      lower.includes('pack chesanu') ||
-      lower.includes('ప్యాకింగ్ అయిపోయింది') ||
-      lower.includes('ప్యాక్ చేసేశాను') ||
-      lower.includes('ప్యాక్ చేశాను') ||
-      lower.includes('ప్యాక్ అయిపోయింది') ||
-      lower.includes('ready undi') ||
-      lower.includes('delivery ready') ||
-      lower.includes('ready ga undi') ||
-      lower.includes('पैक हो गया') ||
-      lower.includes('पैक कर दिया') ||
-      ((lower.includes('packed') || lower.includes('packing') || lower.includes('ప్యాక్')) &&
-        (lower.includes('ready') || lower.includes('partner') || lower.includes('waiting') || lower.includes('రెడీ') || lower.includes('delivery')));
-
-    // STAGE 3: DELIVERY PARTNER ARRIVED / SENT
-    // "Yeah I have packed and the delivery partner has arrived and I have sent the order / out for delivery"
-    const isPartnerArrivedSent =
+    // STAGE 4: DELIVERY PARTNER ARRIVED / SHIPPED / SENT
+    // Understands: "shipped", "sent the order", "delivery partner arrived pampinchanu", "delivery boy vachadu", etc.
+    const isShipped =
       lower.includes('delivery partner has arrived') ||
       lower.includes('partner has arrived') ||
       lower.includes('delivery partner arrived') ||
+      lower.includes('delivery boy arrived') ||
       lower.includes('sent the order') ||
       lower.includes('sent') ||
+      lower.includes('shipped') ||
       lower.includes('out for delivery') ||
       lower.includes('on the way') ||
       lower.includes('డెలివరీ బాయ్ వచ్చాడు') ||
@@ -518,45 +644,117 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
       lower.includes('పంపించాను') ||
       lower.includes('ఇచ్చేశాను') ||
       lower.includes('ఇచ్చాను') ||
+      lower.includes('ఆర్డర్ పంపించాను') ||
+      lower.includes('రవాణా') ||
+      lower.includes('బయలుదేరింది') ||
+      lower.includes('డిస్పాచ్') ||
       lower.includes('icheshna') ||
       lower.includes('pampina') ||
       lower.includes('pampinchanu') ||
       lower.includes('vachadu') ||
       lower.includes('vachesadu') ||
       lower.includes('vachindu') ||
-      lower.includes('రవాణా') ||
-      lower.includes('బయలుదేరింది') ||
-      lower.includes('డిస్పాచ్') ||
       lower.includes('डिलीवरी पार्टनर आ गया') ||
       lower.includes('भेज दिया') ||
       lower.includes('रवाना हो गया') ||
       lower.includes('निकल गया');
 
-    // STAGE 1: ORDER ACCEPTANCE / AVAILABILITY
-    // "Yeah these items are available in my stock and I am ready for the package / 5 minutes packaging time"
-    const isAcceptAvailable =
-      lower.includes('available') ||
+    // STAGE 3: ORDER READY / PACKED & WAITING FOR PARTNER
+    // Understands: "order ready", "ready undi", "it has been packed", "back cheshna", "pack chesesa", etc.
+    const isOrderReady =
+      lower.includes('it has been packed') ||
+      lower.includes('already packed') ||
+      lower.includes('packed and ready') ||
+      lower.includes('order ready') ||
+      lower.includes('ready undi') ||
+      lower.includes('ready ga undi') ||
+      lower.includes('delivery ready') ||
+      lower.includes('pack aipoindi') ||
+      lower.includes('pack ayipoyindi') ||
+      lower.includes('back cheshna') ||
+      lower.includes('pack cheshna') ||
+      lower.includes('back chesina') ||
+      lower.includes('pack chesina') ||
+      lower.includes('pak chesina') ||
+      lower.includes('bag chesna') ||
+      lower.includes('pack chesesa') ||
+      lower.includes('pack chesa') ||
+      lower.includes('ప్యాకింగ్ అయిపోయింది') ||
+      lower.includes('ప్యాక్ చేసేశాను') ||
+      lower.includes('ప్యాక్ చేశాను') ||
+      lower.includes('ప్యాక్ అయిపోయింది') ||
+      lower.includes('ఆర్డర్ రెడీ') ||
+      lower.includes('రెడీగా ఉంది') ||
+      lower.includes('రెడీ ఉంది') ||
+      lower.includes('డెలివరీ కోసం రెడీ') ||
+      lower.includes('waiting for delivery') ||
+      lower.includes('waiting for partner') ||
+      lower.includes('ready for delivery') ||
+      lower.includes('पैक हो गया') ||
+      lower.includes('पैक कर दिया') ||
+      lower.includes('ऑर्डर तैयार है') ||
+      lower.includes('तैयार है');
+
+    // STAGE 2: PACKING IN PROGRESS
+    // Understands: "packing the order", "pack chestunna", "packing start chesa", "ప్యాకింగ్ చేస్తున్నాను"
+    const isPackingOrder =
+      lower.includes('packing the order') ||
+      lower.includes('packing order') ||
+      lower.includes('pack chestunna') ||
+      lower.includes('packing chestunna') ||
+      lower.includes('pack chestanu') ||
+      lower.includes('packing start') ||
+      lower.includes('start packing') ||
+      lower.includes('packing') ||
+      lower.includes('ప్యాకింగ్ చేస్తున్నాను') ||
+      lower.includes('ప్యాకింగ్ చేస్తున్నా') ||
+      lower.includes('ప్యాక్ చేస్తున్నాను') ||
+      lower.includes('ప్యాక్ చేస్తున్నా') ||
+      lower.includes('ప్యాకింగ్ మొదలైంది') ||
+      lower.includes('ప్యాకింగ్ ప్రారంభించాను') ||
+      lower.includes('ప్యాక్ చేస్తాను') ||
+      lower.includes('ప్యాకింగ్') ||
+      lower.includes('pack kar raha hoon') ||
+      lower.includes('पैकिंग शुरू') ||
+      lower.includes('पैक कर रहा हूँ') ||
+      lower.includes('पैक कर रहे हैं');
+
+    // STAGE 1: ORDER ACCEPTANCE
+    // Understands: "order ni accept chey", "order accept", "yes accept", "accept the order", "ఆర్డర్ ని యాక్సెప్ట్ చెయ్", etc.
+    const isAcceptOrder =
+      lower.includes('order ni accept chey') ||
+      lower.includes('order accept chey') ||
+      lower.includes('order accept') ||
+      lower.includes('accept the order') ||
+      lower.includes('yes accept') ||
       lower.includes('accept') ||
       lower.includes('yes') ||
-      lower.includes('pack') ||
-      lower.includes('ready for package') ||
-      lower.includes('5 minutes') ||
-      lower.includes('10 minutes') ||
-      lower.includes('ఉన్నాయి') ||
-      lower.includes('సరుకు ఉంది') ||
+      lower.includes('available') ||
+      lower.includes('in stock') ||
+      lower.includes('ఆర్డర్ ని యాక్సెప్ట్ చెయ్') ||
+      lower.includes('ఆర్డర్ యాక్సెప్ట్ చేయి') ||
+      lower.includes('ఆర్డర్ యాక్సెప్ట్') ||
+      lower.includes('ఆర్డర్ ని యాక్సెప్ట్') ||
+      lower.includes('యాక్సెప్ట్ చెయ్') ||
+      lower.includes('యాక్సెప్ట్ చేయండి') ||
+      lower.includes('యాక్సెప్ట్') ||
+      lower.includes('ఆక్సెప్ట్') ||
       lower.includes('అంగీకరించు') ||
+      lower.includes('ఆర్డర్ తీసుకో') ||
       lower.includes('తీసుకో') ||
-      lower.includes('ప్యాక్ చేస్తాను') ||
+      lower.includes('సరుకులు ఉన్నాయి') ||
+      lower.includes('సామాన్ ఉంది') ||
+      lower.includes('ఉన్నాయి') ||
       lower.includes('సరే') ||
       lower.includes('అవును') ||
       lower.includes('హా') ||
-      lower.includes('సామాన్ ఉంది') ||
       lower.includes('సామాన్') ||
       lower.includes('सामान है') ||
       lower.includes('स्वीकार') ||
+      lower.includes('ऑर्डर स्वीकार') ||
       lower.includes('हाँ') ||
-      lower.includes('पैक कर रहा हूँ') ||
-      lower.includes('पैक');
+      lower.includes('ले लो') ||
+      lower.includes('कन्फर्म');
 
     // REJECTION
     const isReject =
@@ -571,12 +769,12 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
       lower.includes('सामान नहीं है') ||
       lower.includes('रद्द');
 
-    // EXECUTE LIFECYCLE TRANSITIONS:
+    // EXECUTE LIFECYCLE PROGRESSION:
 
-    // 1. If shopkeeper states items were dispatched with delivery partner
-    if (isPartnerArrivedSent && (currentOrder.status === 'ready' || currentOrder.status === 'preparing' || currentOrder.status === 'request_sent')) {
+    // 1. STAGE 4: Handed to Delivery Partner -> Shipped
+    if (isShipped && (currentOrder.status === 'ready' || currentOrder.status === 'preparing' || currentOrder.status === 'shop_accepted' || currentOrder.status === 'request_sent')) {
       stopListening();
-      const statusNote = 'Delivery partner has picked up — yeah it is on the way for delivery! 🛵';
+      const statusNote = 'Delivery partner has picked up — on the way for delivery! 🛵';
       storage.updateOrderStatus(
         currentOrder.id,
         'out_for_delivery',
@@ -587,15 +785,15 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
 
       let aiReply = '';
       if (detected.dialect === 'te') {
-        aiReply = 'చాలా మంచిది! ఆర్డర్ డెలివరీకి బయలుదేరినట్లు కస్టమర్‌కి సమాచారం అందించాను. 🛵';
+        aiReply = 'చాలా మంచిది! ఆర్డర్ డెలివరీ పార్టనర్‌తో బయలుదేరిందని కస్టమర్ పోర్టల్‌లో లైవ్ ట్రాకింగ్ అప్‌డేట్ చేసేశాను. ధన్యవాదాలు! 🛵';
       } else if (detected.dialect === 'tenglish') {
-        aiReply = 'Super! Order dispatch ayindi ani customer ki update pampam! 🛵';
+        aiReply = 'Super! Order dispatch ayindi ani customer ki update pampam. Live tracking modal lo kanipistundi! 🛵';
       } else if (detected.dialect === 'hi') {
-        aiReply = 'बहुत बढ़िया! ऑर्डर सफलतापूर्वक भेज दिया गया है, ग्राहक को डिलीवरी लाइव दिखने लगी है। 🛵';
+        aiReply = 'बहुत बढ़िया! ऑर्डर सफलतापूर्वक डिलीवरी पार्टनर को सौंप दिया गया है। ग्राहक को लाइव ट्रैकिंग दिख रही है। 🛵';
       } else if (detected.dialect === 'hinglish') {
         aiReply = 'Order successfully dispatch ho gaya hai! Customer ko live tracking update chala gaya hai! 🛵';
       } else {
-        aiReply = 'Order dispatched! Customer notified that delivery is on the way! 🛵';
+        aiReply = 'Order dispatched with delivery partner! Customer notified that delivery is on the way! 🛵';
       }
 
       setAssistantStatus('Order dispatched for delivery 🛵');
@@ -605,9 +803,8 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
       return;
     }
 
-    // 2. If shopkeeper states items are ALREADY PACKED & READY FOR DELIVERY PARTNER
-    // (Works seamlessly even directly from request_sent when shopkeeper says "na items unnai nae gara, it has been packed")
-    if (isPackedReadyForPartner && (currentOrder.status === 'request_sent' || currentOrder.status === 'preparing' || currentOrder.status === 'shop_accepted')) {
+    // 2. STAGE 3: Items Packed & Ready for Partner
+    if (isOrderReady && (currentOrder.status === 'preparing' || currentOrder.status === 'shop_accepted' || currentOrder.status === 'request_sent')) {
       stopListening();
       const statusNote = 'Items have been packed and are ready for delivery, waiting for delivery partner.';
       storage.updateOrderStatus(
@@ -620,13 +817,13 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
 
       let aiReply = '';
       if (detected.dialect === 'te') {
-        aiReply = 'సరేనండి! సరుకులు మీ దగ్గర ఉన్నాయని, ప్యాకింగ్ పూర్తయి డెలివరీకి సిద్ధంగా ఉందని కస్టమర్‌కి అప్‌డేట్ చేసేశాను. డెలివరీ పార్టనర్ రాగానే అతనికి ఇచ్చేయండి.';
+        aiReply = 'ఆర్డర్ ప్యాక్ అయింది, డెలివరీ పార్టనర్ కోసం సిద్ధంగా ఉందని కస్టమర్‌కి అప్‌డేట్ చేశాను. డెలివరీ బాయ్ రాగానే సరుకులు ఇచ్చి "ఆర్డర్ పంపించాను" అని చెప్పండి.';
       } else if (detected.dialect === 'tenglish') {
-        aiReply = 'Got it! Items unnai and already pack ayipoyayi ani customer portal lo update chesam. Delivery boy ravagane handover cheyandi.';
+        aiReply = 'Items pack ayipoyayi ani customer portal lo update chesam. Delivery boy ravagane handover chesi "shipped" or "pampinchanu" ani cheppandi.';
       } else if (detected.dialect === 'hi') {
-        aiReply = 'बिल्कुल! सामान पैक हो चुका है और डिलीवरी पार्टनर के लिए तैयार है, ग्राहक को सूचना दे दी गई है।';
+        aiReply = 'सामान पैक हो चुका है और डिलीवरी पार्टनर के लिए तैयार है, ग्राहक को सूचना दे दी गई है। डिलीवरी बॉय को देने के बाद कहें "सामान भेज दिया"।';
       } else if (detected.dialect === 'hinglish') {
-        aiReply = 'Got it! Items pack ho gaye hain aur partner ke liye ready hain, customer ko update chala gaya hai.';
+        aiReply = 'Got it! Items pack ho gaye hain aur partner ke liye ready hain. Handover ke baad "shipped" bolein.';
       } else {
         aiReply = 'Got it! Updated customer portal: Items are packed and ready for delivery partner pickup.';
       }
@@ -638,10 +835,10 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
       return;
     }
 
-    // 3. If shopkeeper confirms acceptance and begins packing
-    if (isAcceptAvailable && (currentOrder.status === 'request_sent' || currentOrder.status === 'shop_accepted')) {
+    // 3. STAGE 2: Packaging Order in Progress
+    if (isPackingOrder && (currentOrder.status === 'shop_accepted' || currentOrder.status === 'request_sent')) {
       stopListening();
-      const statusNote = 'Yeah your items are there in stock and store is packing them up (Estimated 5 mins).';
+      const statusNote = 'Store is packing the items (Estimated 5 mins).';
       storage.updateOrderStatus(
         currentOrder.id,
         'preparing',
@@ -652,25 +849,58 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
 
       let aiReply = '';
       if (detected.dialect === 'te') {
-        aiReply = 'సరేనండి! ఆర్డర్ కన్ఫర్మ్ చేశాను. మీరు తీరిగ్గా ప్యాక్ చేసుకోండి. కస్టమర్‌కి "సరుకులు ప్యాక్ అవుతున్నాయి" అని అప్‌డేట్ చేసేశాను.';
+        aiReply = 'సరేనండి! సరుకులు ప్యాక్ అవుతున్నట్లు కస్టమర్ పోర్టల్‌లో అప్‌డేట్ చేసేశాను. ప్యాకింగ్ పూర్తయ్యాక "ఆర్డర్ రెడీగా ఉంది" అని చెప్పండి.';
       } else if (detected.dialect === 'tenglish') {
-        aiReply = 'Order confirm chesam! Items pack chestunnaru ani customer portal lo update ayindi.';
+        aiReply = 'Items pack chestunnaru ani customer portal lo update ayindi. Packing avvagane "order ready" ani cheppandi.';
       } else if (detected.dialect === 'hi') {
-        aiReply = 'हाँ जी! ऑर्डर स्वीकार कर लिया गया है। आप आराम से सामान पैक कर लें, मैंने ग्राहक को अपडेट कर दिया है।';
+        aiReply = 'सामान पैक हो रहा है, मैंने ग्राहक को अपडेट कर दिया है। पैकिंग पूरी होने पर कहें "ऑर्डर तैयार है"।';
       } else if (detected.dialect === 'hinglish') {
-        aiReply = 'Badhiya! Order confirm ho gaya hai. Customer ko notify kar diya hai ki items pack ho rahe hain.';
+        aiReply = 'Items pack ho rahe hain, customer ko update chala gaya hai. Pack hote hi "order ready" bolein.';
       } else {
-        aiReply = 'Got it! Order confirmed. Customer portal updated that items are being packed.';
+        aiReply = 'Got it! Updated customer portal that items are being packed. When finished, say "Order ready".';
       }
 
-      setAssistantStatus('Order accepted. Packaging in progress (5 mins)...');
+      setAssistantStatus('Packaging in progress (5 mins)...');
       speakAI(aiReply, () => {
         if (isVoiceActiveRef.current && !isManuallyPausedRef.current) startListening();
       }, detected.langCode);
       return;
     }
 
-    if (isReject && currentOrder.status === 'request_sent') {
+    // 4. STAGE 1: Order Acceptance
+    if (isAcceptOrder && currentOrder.status === 'request_sent') {
+      stopListening();
+      const statusNote = 'Store accepted the order and confirmed items in stock.';
+      storage.updateOrderStatus(
+        currentOrder.id,
+        'shop_accepted',
+        'Order accepted (In Stock)',
+        statusNote,
+        { speaker: 'shopkeeper', text: spokenText }
+      );
+
+      let aiReply = '';
+      if (detected.dialect === 'te') {
+        aiReply = 'సరేనండి! ఆర్డర్ యాక్సెప్ట్ చేశాను. కస్టమర్‌కి సమాచారం పంపాను. మీరు సరుకులు ప్యాక్ చేయడం ప్రారంభించాక "ప్యాకింగ్ చేస్తున్నాను" అని చెప్పండి.';
+      } else if (detected.dialect === 'tenglish') {
+        aiReply = 'Order accept chesam! Customer ki update pampam. Pack chestunnappudu "packing the order" or "pack chestunna" ani cheppandi.';
+      } else if (detected.dialect === 'hi') {
+        aiReply = 'हाँ जी! ऑर्डर स्वीकार कर लिया गया है। ग्राहक को सूचना भेज दी गई है। सामान पैक करना शुरू करने पर कहें "पैक कर रहा हूँ"।';
+      } else if (detected.dialect === 'hinglish') {
+        aiReply = 'Order accept ho gaya hai! Customer ko notify kar diya hai. Packing shuru karne par bolein "packing the order".';
+      } else {
+        aiReply = 'Order accepted! Customer notified. When you start packing, say "Packing the order".';
+      }
+
+      setAssistantStatus('Order accepted. Waiting for packing confirmation...');
+      speakAI(aiReply, () => {
+        if (isVoiceActiveRef.current && !isManuallyPausedRef.current) startListening();
+      }, detected.langCode);
+      return;
+    }
+
+    // REJECTION
+    if (isReject && (currentOrder.status === 'request_sent' || currentOrder.status === 'shop_accepted')) {
       stopListening();
       storage.updateOrderStatus(
         currentOrder.id,
@@ -691,11 +921,13 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
 
     // Fallback guidance if command wasn't recognized
     const guidance =
-      detected.dialect === 'te' || detected.dialect === 'tenglish'
-        ? 'చెప్పండి: "అవును సరుకులు ఉన్నాయి, 5 నిమిషాల్లో ప్యాక్ చేస్తాను" లేదా "ప్యాకింగ్ అయిపోయింది" లేదా "డెలివరీ బాయ్ వచ్చాడు, పంపించాను".'
+      detected.dialect === 'te'
+        ? 'చెప్పండి: "ఆర్డర్ ని యాక్సెప్ట్ చెయ్", "ప్యాకింగ్ చేస్తున్నాను", "ఆర్డర్ రెడీగా ఉంది", లేదా "ఆర్డర్ పంపించాను".'
+        : detected.dialect === 'tenglish'
+        ? 'Cheppandi: "Order ni accept chey", "Packing the order", "Order ready", or "Shipped".'
         : detected.dialect === 'hi' || detected.dialect === 'hinglish'
-        ? 'बोलिए: "हाँ सामान है, 5 मिनट में पैक कर रहा हूँ" या "पैक हो गया" या "सामान भेज दिया"।'
-        : 'Say: "Yes, items available, 5 mins packing" or "Items are packed" or "Delivery partner arrived, sent the order".';
+        ? 'बोलिए: "ऑर्डर स्वीकार करो", "पैक कर रहा हूँ", "ऑर्डर तैयार है", या "सामान भेज दिया"।'
+        : 'Say: "Order ni accept chey / Accept order", "Packing the order", "Order ready", or "Shipped".';
     speakAI(guidance, () => {
       if (isVoiceActiveRef.current && !isManuallyPausedRef.current) startListening();
     }, detected.langCode);
@@ -705,19 +937,25 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
     storage.simulateIncomingCustomerOrder(shop.id);
   };
 
-  const handleManualAction = (action: 'accept' | 'packed' | 'sent') => {
+  const handleManualAction = (action: 'accept' | 'packing' | 'packed' | 'sent') => {
     if (!activeVoiceOrder) return;
     if (action === 'accept') {
-      handleProcessShopkeeperVoice('Yes items are available and I am packing 5 minutes');
+      handleProcessShopkeeperVoice('Order ni accept chey');
+    } else if (action === 'packing') {
+      handleProcessShopkeeperVoice('Packing the order pack chestunna');
     } else if (action === 'packed') {
-      handleProcessShopkeeperVoice('Hey I have packed the items and it is ready for delivery waiting for delivery partner');
+      handleProcessShopkeeperVoice('Order ready undi packed');
     } else if (action === 'sent') {
-      handleProcessShopkeeperVoice('Delivery partner has arrived and I have sent the order');
+      handleProcessShopkeeperVoice('Delivery partner arrived shipped pampinchanu');
     }
   };
 
   const activeCount = orders.filter(
-    (o) => o.status === 'request_sent' || o.status === 'preparing' || o.status === 'ready'
+    (o) =>
+      o.status === 'request_sent' ||
+      o.status === 'shop_accepted' ||
+      o.status === 'preparing' ||
+      o.status === 'ready'
   ).length;
 
   return (
@@ -869,16 +1107,26 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
             </div>
           </div>
 
-          {/* Ordered items chips */}
+          {/* Ordered items chips with localized language support */}
           <div className="py-3 flex flex-wrap gap-2 border-b border-slate-100">
-            {activeVoiceOrder.items.map((it, idx) => (
-              <span
-                key={idx}
-                className="text-xs font-bold bg-slate-100 text-slate-800 px-3 py-1 rounded-xl border border-slate-200"
-              >
-                {it.productName} × {it.quantity} {it.unit || 'units'} (₹{it.totalPrice})
-              </span>
-            ))}
+            {activeVoiceOrder.items.map((it, idx) => {
+              const localizedTitle = getLocalizedProductName(it.productName, voiceLang);
+              const localizedUnit =
+                voiceLang === 'te-IN'
+                  ? it.unit === 'piece' ? 'పీసులు' : it.unit === 'packet' ? 'ప్యాకెట్' : it.unit || 'యూనిట్లు'
+                  : voiceLang === 'hi-IN'
+                  ? it.unit === 'piece' ? 'पीस' : it.unit === 'packet' ? 'पैकेट' : it.unit || 'यूनिट'
+                  : `${it.quantity > 1 && it.unit === 'piece' ? 'pieces' : it.unit || 'units'}`;
+
+              return (
+                <span
+                  key={idx}
+                  className="text-xs font-bold bg-slate-100 text-slate-800 px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm"
+                >
+                  {localizedTitle} × {it.quantity} {localizedUnit} (₹{it.totalPrice})
+                </span>
+              );
+            })}
           </div>
 
           {/* Live Voice Status Card & Microphone Prompt */}
@@ -909,7 +1157,7 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
               )}
             </div>
 
-            {/* WHAT TO SAY INSTRUCTIONS */}
+            {/* WHAT TO SAY INSTRUCTIONS FOR EVERY STEP */}
             <div className="text-xs font-medium text-slate-700 bg-white p-3 rounded-xl border border-slate-200">
               {activeVoiceOrder.status === 'request_sent' && (
                 <div>
@@ -925,10 +1173,32 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
                   </div>
                   <p className="text-emerald-950 font-bold text-sm bg-emerald-50/70 p-2 rounded-lg border border-emerald-200">
                     "{voiceLang === 'te-IN'
-                      ? 'అవును, సరుకులు ఉన్నాయి, 5 నిమిషాల్లో ప్యాక్ చేస్తాను (or: Yeah items available, accept order)'
+                      ? 'ఆర్డర్ ని యాక్సెప్ట్ చెయ్ (or: Yes accept, order ni accept chey)'
                       : voiceLang === 'hi-IN'
-                      ? 'हाँ, सामान उपलब्ध है और 5 मिनट में पैक कर रहा हूँ (or: Yeah items available, accept order)'
-                      : 'Yeah, these items are available in my stock and I am ready for packaging (5 mins)'}"
+                      ? 'ऑर्डर स्वीकार करो (or: Yes accept, सामान उपलब्ध है)'
+                      : 'Order ni accept chey / Yes accept / In stock'}"
+                  </p>
+                </div>
+              )}
+
+              {activeVoiceOrder.status === 'shop_accepted' && (
+                <div>
+                  <div className="font-extrabold text-slate-900 mb-1 flex items-center gap-1.5">
+                    <span className="text-emerald-700 text-sm">🗣️</span>
+                    <span>
+                      {voiceLang === 'te-IN'
+                        ? 'ఆర్డర్ యాక్సెప్ట్ అయ్యింది! ప్యాకింగ్ మొదలుపెట్టాక ఇలా చెప్పండి:'
+                        : voiceLang === 'hi-IN'
+                        ? 'ऑर्डर स्वीकार हो गया! पैकिंग शुरू करने पर ऐसे बोलें:'
+                        : 'Order accepted! When you begin packing, say:'}
+                    </span>
+                  </div>
+                  <p className="text-emerald-950 font-bold text-sm bg-emerald-50/70 p-2 rounded-lg border border-emerald-200">
+                    "{voiceLang === 'te-IN'
+                      ? 'ప్యాకింగ్ చేస్తున్నాను (or: Packing the order, pack chestunna)'
+                      : voiceLang === 'hi-IN'
+                      ? 'सामान पैक कर रहा हूँ (or: Packing the order)'
+                      : 'Packing the order / pack chestunna'}"
                   </p>
                 </div>
               )}
@@ -947,10 +1217,10 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
                   </div>
                   <p className="text-emerald-950 font-bold text-sm bg-emerald-50/70 p-2 rounded-lg border border-emerald-200">
                     "{voiceLang === 'te-IN'
-                      ? 'ప్యాకింగ్ అయిపోయింది, డెలివరీ కోసం రెడీగా ఉంది (or: Packed and ready for delivery partner)'
+                      ? 'ఆర్డర్ రెడీగా ఉంది (or: Order ready, ready undi, packed)'
                       : voiceLang === 'hi-IN'
-                      ? 'सामान पैक हो गया है और डिलीवरी के लिए तैयार है (or: Packed and ready for partner)'
-                      : 'Hey I have packed the items and it is ready for delivery, waiting for delivery partner'}"
+                      ? 'सामान पैक हो गया है (or: Order ready, ready hai)'
+                      : 'Order ready / Pack ayipoyindi / Ready for partner'}"
                   </p>
                 </div>
               )}
@@ -969,10 +1239,10 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
                   </div>
                   <p className="text-emerald-950 font-bold text-sm bg-emerald-50/70 p-2 rounded-lg border border-emerald-200">
                     "{voiceLang === 'te-IN'
-                      ? 'డెలివరీ బాయ్ వచ్చాడు, ఆర్డర్ పంపించేశాను (or: Delivery partner arrived, sent the order)'
+                      ? 'డెలివరీ బాయ్ వచ్చాడు, ఆర్డర్ పంపించేశాను (or: Delivery partner arrived, shipped)'
                       : voiceLang === 'hi-IN'
-                      ? 'डिलीवरी पार्टनर आ गया, सामान भेज दिया है (or: Delivery partner arrived, sent the order)'
-                      : 'Delivery partner has arrived and I have sent the order, out for delivery'}"
+                      ? 'डिलीवरी पार्टनर आ गया, सामान भेज दिया है (or: Delivery partner arrived, shipped)'
+                      : 'Delivery partner has arrived and I have sent the order, shipped'}"
                   </p>
                 </div>
               )}
@@ -986,7 +1256,7 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
               </div>
             )}
 
-            {/* Tap button fallbacks for convenience */}
+            {/* Tap button fallbacks for convenience across all 4 stages */}
             <div className="flex items-center gap-2 pt-1 flex-wrap">
               <span className="text-[11px] font-bold text-slate-400">Or Tap:</span>
               {activeVoiceOrder.status === 'request_sent' && (
@@ -995,7 +1265,16 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
                   className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 transition shadow-sm"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Accept (In Stock & Pack 5 mins)</span>
+                  <span>{voiceLang === 'te-IN' ? 'ఆర్డర్ యాక్సెప్ట్ (Accept)' : 'Accept Order (In Stock)'}</span>
+                </button>
+              )}
+              {activeVoiceOrder.status === 'shop_accepted' && (
+                <button
+                  onClick={() => handleManualAction('packing')}
+                  className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1 transition shadow-sm"
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{voiceLang === 'te-IN' ? 'ప్యాకింగ్ ప్రారంభించు (Start Packing)' : 'Start Packing (5 mins)'}</span>
                 </button>
               )}
               {activeVoiceOrder.status === 'preparing' && (
@@ -1004,7 +1283,7 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
                   className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1 transition shadow-sm"
                 >
                   <Package className="w-3.5 h-3.5" />
-                  <span>Mark Packed (Waiting for Partner)</span>
+                  <span>{voiceLang === 'te-IN' ? 'ప్యాక్ అయింది (Mark Packed)' : 'Mark Packed (Waiting for Partner)'}</span>
                 </button>
               )}
               {activeVoiceOrder.status === 'ready' && (
@@ -1013,7 +1292,7 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
                   className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 transition shadow-sm"
                 >
                   <Truck className="w-3.5 h-3.5" />
-                  <span>Handed to Delivery Partner (Out for Delivery)</span>
+                  <span>{voiceLang === 'te-IN' ? 'డెలివరీకి పంపించాను (Sent to Partner)' : 'Handed to Delivery Partner (Out for Delivery)'}</span>
                 </button>
               )}
             </div>

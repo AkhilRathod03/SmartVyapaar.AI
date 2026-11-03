@@ -76,13 +76,10 @@ export const ShopOverview: React.FC = () => {
         <div className="flex items-center gap-2">
           <Link
             to="/shopkeeper/mana-ai"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-slate-900 to-emerald-950 hover:from-slate-800 hover:to-emerald-900 text-white font-bold text-xs sm:text-sm shadow-md transition border border-emerald-500/40"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm shadow-md transition border border-emerald-500/30"
           >
             <Bot className="w-4 h-4 text-emerald-400" />
             <span>Mana-AI Copilot</span>
-            <span className="text-[10px] bg-emerald-500 text-slate-950 px-1.5 py-0.5 rounded-full font-black">
-              Voice & Brain
-            </span>
           </Link>
         </div>
       </div>

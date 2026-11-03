@@ -51,13 +51,13 @@ export const ShopkeeperDashboardLayout: React.FC = () => {
       path: '/shopkeeper/mana-ai',
       label:
         language === 'te'
-          ? 'Mana-AI కోపైలట్ (ఆల్-ఇన్-వన్)'
+          ? 'Mana-AI కోపైలట్'
           : language === 'hi'
-          ? 'Mana-AI ऑल-इन-वन'
-          : 'Mana-AI Copilot (All-in-One)',
+          ? 'Mana-AI सलाहकार'
+          : 'Mana-AI Copilot',
       icon: Bot,
       highlight: true,
-      badgeText: 'A to Z AI',
+      badgeText: 'AI',
     },
     {
       path: '/shopkeeper/inventory',
