@@ -101,6 +101,7 @@ export const OrdersManagement: React.FC = () => {
             const isAccepted = order.status === 'shop_accepted';
             const isPreparing = order.status === 'preparing';
             const isReady = order.status === 'ready';
+            const isOutForDelivery = order.status === 'out_for_delivery';
             const isCompleted = order.status === 'completed';
 
             return (
@@ -124,8 +125,10 @@ export const OrdersManagement: React.FC = () => {
                       className={`text-xs font-bold px-2.5 py-0.5 rounded-full capitalize ${
                         isCompleted
                           ? 'bg-slate-100 text-slate-700'
-                          : isReady
+                          : isOutForDelivery
                           ? 'bg-emerald-100 text-emerald-800'
+                          : isReady
+                          ? 'bg-teal-100 text-teal-800'
                           : isPreparing
                           ? 'bg-blue-100 text-blue-800'
                           : isAccepted
@@ -175,7 +178,7 @@ export const OrdersManagement: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Customer details */}
+                  {/* Customer details & Live Voice Update */}
                   <div className="p-3 bg-slate-50 rounded-xl space-y-1.5 flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between">
@@ -193,32 +196,33 @@ export const OrdersManagement: React.FC = () => {
                           📍 Address: {order.deliveryAddress}
                         </p>
                       )}
-                      {order.notes && (
-                        <p className="text-slate-500 italic mt-0.5 text-[11px]">
-                          "{order.notes}"
-                        </p>
+                      {order.statusNotes && (
+                        <div className="mt-2 p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-950 text-[11px]">
+                          <span className="font-bold block text-emerald-800 uppercase text-[9px]">24/7 AI Voice Note:</span>
+                          "{order.statusNotes}"
+                        </div>
                       )}
                     </div>
 
                     <div className="pt-2 text-[11px] text-slate-400">
-                      Current timeline: <strong>{order.estimatedTime}</strong>
+                      Timeline: <strong>{order.estimatedTime}</strong>
                     </div>
                   </div>
                 </div>
 
                 {/* Status Action Buttons Pipeline */}
                 <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 text-xs">
-                  <span className="text-slate-400 font-medium text-[11px]">Advance order state:</span>
+                  <span className="text-slate-400 font-medium text-[11px]">Voice / Manual Action:</span>
 
                   <div className="flex items-center gap-2 flex-wrap">
                     {isRequestSent && (
                       <>
                         <button
-                          onClick={() => handleUpdateStatus(order.id, 'shop_accepted')}
+                          onClick={() => handleUpdateStatus(order.id, 'preparing')}
                           className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition flex items-center gap-1 shadow-sm"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Accept Request</span>
+                          <span>Accept & Start Packing</span>
                         </button>
                         <button
                           onClick={() => handleUpdateStatus(order.id, 'rejected')}
@@ -234,26 +238,36 @@ export const OrdersManagement: React.FC = () => {
                         onClick={() => handleUpdateStatus(order.id, 'preparing')}
                         className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold transition flex items-center gap-1"
                       >
-                        <span>Mark Preparing</span>
+                        <span>Mark Packing</span>
                       </button>
                     )}
 
                     {isPreparing && (
                       <button
                         onClick={() => handleUpdateStatus(order.id, 'ready')}
-                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition flex items-center gap-1"
+                        className="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold transition flex items-center gap-1"
                       >
-                        <span>Mark Ready / Out for Delivery</span>
+                        <span>Mark Packed (Ready for Partner)</span>
                       </button>
                     )}
 
                     {isReady && (
                       <button
+                        onClick={() => handleUpdateStatus(order.id, 'out_for_delivery')}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition flex items-center gap-1"
+                      >
+                        <Truck className="w-3.5 h-3.5" />
+                        <span>Handed to Partner (Out for Delivery)</span>
+                      </button>
+                    )}
+
+                    {isOutForDelivery && (
+                      <button
                         onClick={() => handleUpdateStatus(order.id, 'completed')}
                         className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold transition flex items-center gap-1"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Complete & Fulfill Order</span>
+                        <span>Confirm Delivered & Closed</span>
                       </button>
                     )}
 

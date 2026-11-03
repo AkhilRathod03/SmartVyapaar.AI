@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { storage } from '../../services/storageService';
 import { useLanguage, Language } from '../../context/LanguageContext';
+import { Shopkeeper24x7VoiceAssistant } from '../../components/shopkeeper/Shopkeeper24x7VoiceAssistant';
 
 export const ShopkeeperDashboardLayout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -296,6 +297,8 @@ export const ShopkeeperDashboardLayout: React.FC = () => {
 
         {/* Page Content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto pb-24 md:pb-8">
+          {/* 24/7 AI Voice Dispatcher for the Shopkeeper */}
+          <Shopkeeper24x7VoiceAssistant shopId={shop.id} />
           <Outlet />
         </main>
 

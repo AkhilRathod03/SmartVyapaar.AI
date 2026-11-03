@@ -11,6 +11,11 @@ import {
   Building,
   RotateCw,
   LayoutDashboard,
+  Mic,
+  Volume2,
+  VolumeX,
+  Radio,
+  Sparkles,
 } from 'lucide-react';
 import { storage } from '../../services/storageService';
 import { Order, OrderStatus } from '../../types';
@@ -51,6 +56,7 @@ export const OrderStatusPage: React.FC = () => {
   }
 
   const shop = storage.getShopById(order.shopId);
+  const [isSpeakingStatus, setIsSpeakingStatus] = useState(false);
 
   const statusSteps: { key: OrderStatus; label: string; desc: string }[] = [
     {
@@ -66,17 +72,22 @@ export const OrderStatusPage: React.FC = () => {
     {
       key: 'preparing',
       label: t('stepPreparing'),
-      desc: language === 'te' ? 'సంచిలో సర్దుతున్నారు' : language === 'hi' ? 'थैले में पैक हो रहा है' : 'Packaging',
+      desc: language === 'te' ? 'సంచిలో సర్దుతున్నారు' : language === 'hi' ? 'थैले में पैक हो रहा है' : 'Packaging (5m)',
     },
     {
       key: 'ready',
-      label: t('stepReady'),
-      desc: language === 'te' ? 'తీసుకోవచ్చు' : language === 'hi' ? 'लेने आएं / रवाना' : 'Ready',
+      label: language === 'te' ? 'పార్టనర్ కోసం సిద్ధం' : language === 'hi' ? 'पार्टनर का इंतजार' : 'Ready for Delivery',
+      desc: language === 'te' ? 'డెలివరీ కోసం చూస్తున్నారు' : language === 'hi' ? 'पार्टनर का इंतजार' : 'Waiting for partner',
+    },
+    {
+      key: 'out_for_delivery',
+      label: language === 'te' ? 'రవాణాలో ఉంది' : language === 'hi' ? 'रास्ते में है' : 'Out for Delivery',
+      desc: language === 'te' ? 'బయలుదేరింది 🛵' : language === 'hi' ? 'निकल चुका है 🛵' : 'On the way 🛵',
     },
     {
       key: 'completed',
       label: t('stepCompleted'),
-      desc: language === 'te' ? 'సరుకు ముట్టింది' : language === 'hi' ? 'मिल गया' : 'Delivered',
+      desc: language === 'te' ? 'సరుకు ముట్టింది ✅' : language === 'hi' ? 'मिल गया ✅' : 'Delivered ✅',
     },
   ];
 
@@ -93,6 +104,7 @@ export const OrderStatusPage: React.FC = () => {
       'shop_accepted',
       'preparing',
       'ready',
+      'out_for_delivery',
       'completed',
     ];
     const currentIndex = nextStatuses.indexOf(order.status);
@@ -100,6 +112,63 @@ export const OrderStatusPage: React.FC = () => {
       const next = nextStatuses[currentIndex + 1];
       storage.updateOrderStatus(order.id, next);
     }
+  };
+
+  const getLiveVoiceUpdateMessage = () => {
+    if (order.statusNotes) return order.statusNotes;
+    if (order.status === 'request_sent') {
+      return language === 'te'
+        ? 'ఆర్డర్ షాపుకి చేరింది — 24/7 AI అసిస్టెంట్ దుకాణదారుడితో సరుకుల నిల్వ గురించి మాట్లాడుతోంది...'
+        : language === 'hi'
+        ? 'ऑर्डर दुकान तक पहुँच गया है — 24/7 AI सहायक दुकानदार से सामान की पुष्टि ले रहा है...'
+        : 'Order reached store — 24/7 AI voice is speaking with shopkeeper to verify stock...';
+    }
+    if (order.status === 'shop_accepted' || order.status === 'preparing') {
+      return language === 'te'
+        ? 'దుకాణదారుడు: "అవును సరుకులు ఉన్నాయి, 5 నిమిషాల్లో ప్యాక్ చేస్తాను!" — సరుకులు బ్యాగ్‌లో సర్దుతున్నారు.'
+        : language === 'hi'
+        ? 'दुकानदार: "हाँ सामान उपलब्ध है और 5 मिनट में पैक कर रहा हूँ!" — पैकिंग चल रही है।'
+        : 'Shopkeeper: "Yeah your items are there and ready for the packaging (Estimated 5 mins)!"';
+    }
+    if (order.status === 'ready') {
+      return language === 'te'
+        ? 'దుకాణదారుడు: "ప్యాకింగ్ అయిపోయింది, డెలివరీ పార్టనర్ కోసం సిద్ధంగా ఉంది!"'
+        : language === 'hi'
+        ? 'दुकानदार: "सामान पैक हो गया है, डिलीवरी पार्टनर का इंतजार है!"'
+        : 'Shopkeeper: "Items have been packed and are ready for delivery, waiting for delivery partner."';
+    }
+    if (order.status === 'out_for_delivery') {
+      return language === 'te'
+        ? 'దుకాణదారుడు: "డెలివరీ పార్టనర్ వచ్చాడు, ఆర్డర్ పంపించేశాను — రవాణాలో ఉంది! 🛵"'
+        : language === 'hi'
+        ? 'दुकानदार: "डिलीवरी पार्टनर को दे दिया है, सामान रास्ते में है! 🛵"'
+        : 'Shopkeeper: "Yeah I have packed and the delivery partner has arrived and I have sent the order — on the way for delivery! 🛵"';
+    }
+    if (order.status === 'completed') {
+      return language === 'te'
+        ? 'ఆర్డర్ విజయవంతంగా అందించబడింది. ధన్యవాదాలు!'
+        : language === 'hi'
+        ? 'ऑर्डर सफलतापूर्वक प्राप्त हो गया है। धन्यवाद!'
+        : 'Order delivered and received successfully. Thank you!';
+    }
+    return 'Store update received.';
+  };
+
+  const handleSpeakStatusAloud = () => {
+    if (!('speechSynthesis' in window)) return;
+    if (isSpeakingStatus) {
+      window.speechSynthesis.cancel();
+      setIsSpeakingStatus(false);
+      return;
+    }
+    const textToSpeak = getLiveVoiceUpdateMessage();
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = language === 'te' ? 'te-IN' : language === 'hi' ? 'hi-IN' : 'en-IN';
+    utterance.rate = 0.95;
+    setIsSpeakingStatus(true);
+    utterance.onend = () => setIsSpeakingStatus(false);
+    utterance.onerror = () => setIsSpeakingStatus(false);
+    window.speechSynthesis.speak(utterance);
   };
 
   return (
@@ -130,9 +199,49 @@ export const OrderStatusPage: React.FC = () => {
             </div>
           </div>
 
+          {/* LIVE STORE AI VOICE BANNER */}
+          <div className="my-5 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 text-white border border-emerald-500/40 shadow-md">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-400 flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                  <Mic className="w-5 h-5 animate-pulse text-emerald-400" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-xs uppercase tracking-wider text-emerald-300">
+                      {language === 'te' ? 'స్టోర్ లైవ్ వాయిస్ అప్‌డేట్' : language === 'hi' ? 'स्टोर लाइव वॉइस अपडेट' : 'Store Live Voice Dispatch'}
+                    </span>
+                    <span className="text-[10px] bg-emerald-400/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-400/30">
+                      24/7 Voice AI
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm sm:text-base font-bold text-white leading-relaxed">
+                    "{getLiveVoiceUpdateMessage()}"
+                  </p>
+                  <p className="text-[11px] text-emerald-300/80 mt-1 flex items-center gap-1.5">
+                    <Clock className="w-3 h-3" />
+                    <span>{order.estimatedTime}</span>
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleSpeakStatusAloud}
+                className={`p-2 rounded-xl border transition shrink-0 ${
+                  isSpeakingStatus
+                    ? 'bg-emerald-600 text-white border-emerald-400 animate-pulse'
+                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
+                }`}
+                title={isSpeakingStatus ? 'Stop audio' : 'Listen aloud'}
+              >
+                {isSpeakingStatus ? <VolumeX className="w-4 h-4 text-white" /> : <Volume2 className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
           {/* ORDER STATUS PROGRESSION */}
-          <div className="py-8">
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+          <div className="py-6 border-b border-slate-100">
+            <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 sm:gap-2">
               {statusSteps.map((step, idx) => {
                 const isDone = idx < currentStepIndex;
                 const isCurrent = idx === currentStepIndex;

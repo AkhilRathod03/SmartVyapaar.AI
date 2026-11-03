@@ -34,6 +34,13 @@ class StorageService {
 
   constructor() {
     this.init();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', (event) => {
+        if (!event.key || event.key.startsWith('vyaparai_')) {
+          this.notify();
+        }
+      });
+    }
   }
 
   private init() {
@@ -267,21 +274,94 @@ class StorageService {
     return newOrder;
   }
 
-  public updateOrderStatus(orderId: string, status: OrderStatus) {
+  public updateOrderStatus(
+    orderId: string,
+    status: OrderStatus,
+    customEstimatedTime?: string,
+    statusNotes?: string,
+    voiceLogEntry?: { speaker: 'ai' | 'shopkeeper' | 'customer'; text: string }
+  ) {
     const all = this.getOrders().map((order) => {
       if (order.id === orderId || order.orderNumber === orderId) {
-        let estimatedTime = order.estimatedTime;
-        if (status === 'shop_accepted') estimatedTime = 'Preparing in 15 mins';
-        else if (status === 'preparing') estimatedTime = 'Ready in 5-10 mins';
-        else if (status === 'ready') estimatedTime = order.orderType === 'delivery' ? 'Out for delivery' : 'Ready for pickup!';
-        else if (status === 'completed') estimatedTime = 'Order Delivered / Picked up';
-        else if (status === 'rejected') estimatedTime = 'Cancelled by store';
-        return { ...order, status, estimatedTime };
+        let estimatedTime = customEstimatedTime || order.estimatedTime;
+        if (!customEstimatedTime) {
+          if (status === 'shop_accepted') estimatedTime = 'Confirmed: Items available';
+          else if (status === 'preparing') estimatedTime = 'Items being packed (5-10 mins)';
+          else if (status === 'ready') estimatedTime = 'Packed & ready, waiting for delivery partner';
+          else if (status === 'out_for_delivery') estimatedTime = 'On the way for delivery! 🛵';
+          else if (status === 'completed') estimatedTime = 'Order Delivered / Received ✅';
+          else if (status === 'rejected') estimatedTime = 'Cancelled by store';
+        }
+
+        const voiceLog = order.voiceLog ? [...order.voiceLog] : [];
+        if (voiceLogEntry) {
+          voiceLog.push({
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            speaker: voiceLogEntry.speaker,
+            text: voiceLogEntry.text,
+          });
+        }
+
+        return {
+          ...order,
+          status,
+          estimatedTime,
+          statusNotes: statusNotes !== undefined ? statusNotes : order.statusNotes,
+          lastUpdatedStatus: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          voiceLog,
+        };
       }
       return order;
     });
     localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(all));
     this.notify();
+  }
+
+  public simulateIncomingCustomerOrder(shopId: string = 'shop-1'): Order {
+    const shop = this.getShopById(shopId) || this.getShops()[0];
+    const customerSamples = [
+      { name: 'Kavitha Reddy', phone: '9848011223', address: 'Plot 42, HMT Colony, Lingampally' },
+      { name: 'Ramesh Kumar', phone: '9440123456', address: 'Flat 302, Sai Balaji Residency, Tara Nagar' },
+      { name: 'Suresh Varma', phone: '9849203948', address: 'House 12-4, Near BHEL Gate, Lingampally' },
+      { name: 'Ananya Sharma', phone: '9703554411', address: 'Block C-14, MIG Phase 1, BHEL' },
+    ];
+    const chosenCust = customerSamples[Math.floor(Math.random() * customerSamples.length)];
+
+    const itemBaskets = [
+      [
+        { productName: 'Freedom Sunflower Oil (1L)', quantity: 2, unitPrice: 135, totalPrice: 270, isAvailable: true, unit: 'packet' },
+        { productName: 'Lifebuoy Soap (125g)', quantity: 4, unitPrice: 32, totalPrice: 128, isAvailable: true, unit: 'piece' },
+        { productName: 'Heritage Toned Milk (500ml)', quantity: 2, unitPrice: 28, totalPrice: 56, isAvailable: true, unit: 'packet' },
+      ],
+      [
+        { productName: 'Tata Salt (1kg)', quantity: 1, unitPrice: 24, totalPrice: 24, isAvailable: true, unit: 'packet' },
+        { productName: 'Red Label Tea (250g)', quantity: 1, unitPrice: 140, totalPrice: 140, isAvailable: true, unit: 'packet' },
+        { productName: 'Britannia Marie Gold', quantity: 2, unitPrice: 30, totalPrice: 60, isAvailable: true, unit: 'packet' },
+      ],
+      [
+        { productName: 'Philips LED Bulb 9W', quantity: 2, unitPrice: 95, totalPrice: 190, isAvailable: true, unit: 'piece' },
+        { productName: 'Surf Excel Quick Wash (1kg)', quantity: 1, unitPrice: 145, totalPrice: 145, isAvailable: true, unit: 'packet' },
+      ],
+    ];
+    const chosenItems = itemBaskets[Math.floor(Math.random() * itemBaskets.length)];
+    const subtotal = chosenItems.reduce((acc, it) => acc + it.totalPrice, 0);
+    const deliveryFee = 25;
+
+    return this.addOrder({
+      shopId: shop.id,
+      shopName: shop.name,
+      customerName: chosenCust.name,
+      customerPhone: chosenCust.phone,
+      deliveryAddress: chosenCust.address,
+      orderType: 'delivery',
+      items: chosenItems,
+      subtotal,
+      deliveryFee,
+      total: subtotal + deliveryFee,
+      status: 'request_sent',
+      estimatedTime: 'Waiting for store confirmation',
+      notes: 'New incoming voice-managed order',
+    });
   }
 
   // KHATA

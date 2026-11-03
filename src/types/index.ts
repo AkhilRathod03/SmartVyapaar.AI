@@ -68,8 +68,15 @@ export type OrderStatus =
   | 'shop_accepted'
   | 'preparing'
   | 'ready'
+  | 'out_for_delivery'
   | 'completed'
   | 'rejected';
+
+export interface OrderVoiceLog {
+  timestamp: string;
+  speaker: 'ai' | 'shopkeeper' | 'customer';
+  text: string;
+}
 
 export interface Order {
   id: string;
@@ -88,6 +95,10 @@ export interface Order {
   createdAt: string;
   estimatedTime: string;
   notes?: string;
+  statusNotes?: string;
+  packagingTimeMinutes?: number;
+  lastUpdatedStatus?: string;
+  voiceLog?: OrderVoiceLog[];
 }
 
 export type ExpenseCategory =
