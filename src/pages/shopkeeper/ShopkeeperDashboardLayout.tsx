@@ -290,8 +290,10 @@ export const ShopkeeperDashboardLayout: React.FC = () => {
 
         {/* Page Content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto pb-24 md:pb-8">
-          {/* 24/7 AI Voice Dispatcher for the Shopkeeper */}
-          <Shopkeeper24x7VoiceAssistant shopId={shop.id} />
+          {/* 24/7 AI Voice Dispatcher for the Shopkeeper (Unmounted on dedicated Mana-AI page to avoid dual-mic hardware contention) */}
+          {location.pathname !== '/shopkeeper/mana-ai' && (
+            <Shopkeeper24x7VoiceAssistant shopId={shop.id} />
+          )}
           <Outlet />
         </main>
 

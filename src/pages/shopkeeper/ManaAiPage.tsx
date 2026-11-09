@@ -176,14 +176,7 @@ Ask me anything about your shop:
         ? 'सफलतापूर्वक सुरक्षित कर लिया गया!'
         : 'Successfully saved to store records!';
 
-    if ('speechSynthesis' in window) {
-      try {
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(successVoice);
-        u.lang = selectedVoiceLang;
-        window.speechSynthesis.speak(u);
-      } catch {}
-    }
+    manaAiService.speakText(successVoice, pageLang);
   };
 
   const handleCancelAction = (msgId: string) => {
@@ -270,15 +263,12 @@ Ask me anything about your shop:
       const response = await manaAiService.askShopkeeperCopilot(raw, shop.id, pageLang);
       setMessages((prev) => [...prev, response]);
 
-      // Automatically speak the response text if user interacted by voice
-      if (response && response.text && ('speechSynthesis' in window)) {
-        try {
-          window.speechSynthesis.cancel();
-          const cleanText = response.text.replace(/[*#•-]/g, '').substring(0, 180);
-          const u = new SpeechSynthesisUtterance(cleanText);
-          u.lang = selectedVoiceLang;
-          window.speechSynthesis.speak(u);
-        } catch {}
+      // Automatically speak the response text if user interacted by voice or requested
+      if (response && response.text) {
+        setIsSpeakingId(response.id);
+        await manaAiService.speakText(response.text, pageLang, () => {
+          setIsSpeakingId(null);
+        });
       }
     } catch (e) {
       setMessages((prev) => [
@@ -329,6 +319,9 @@ Ask me anything about your shop:
 
   // Web Speech API Voice Recognition
   const startListening = () => {
+    manaAiService.stopSpeaking();
+    setIsSpeakingId(null);
+
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
@@ -372,38 +365,33 @@ Ask me anything about your shop:
       };
 
       recognition.onresult = (event: any) => {
-        let fullTranscript = '';
-        let hasFinalResult = false;
+        let finalTranscript = '';
+        let interimTranscript = '';
 
         for (let i = 0; i < event.results.length; ++i) {
-          const part = event.results[i][0].transcript;
-          fullTranscript += part;
-          if (event.results[i].isFinal) {
-            hasFinalResult = true;
+          const item = event.results[i];
+          if (item.isFinal) {
+            finalTranscript += item[0].transcript;
+          } else {
+            interimTranscript += item[0].transcript;
           }
         }
 
-        const trimmed = fullTranscript.trim();
-        if (trimmed) {
-          transcriptRef.current = trimmed;
-          setInterimTranscript(trimmed);
-          setInput(trimmed); // Real-time feedback into input box!
-        }
+        const currentSpoken = (finalTranscript || interimTranscript).trim();
+        if (currentSpoken) {
+          transcriptRef.current = currentSpoken;
+          setInterimTranscript(currentSpoken);
+          setInput(currentSpoken);
 
-        // Auto-commit timer after natural pause in speech
-        if (trimmed) {
           if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-          silenceTimerRef.current = setTimeout(
-            () => {
-              commitSpeech();
-            },
-            hasFinalResult ? 900 : 1800
-          );
+          silenceTimerRef.current = setTimeout(() => {
+            commitSpeech();
+          }, 850);
         }
       };
 
       recognition.onerror = (event: any) => {
-        console.warn('Speech recognition error:', event.error);
+        console.warn('Speech recognition event:', event.error);
         if (event.error === 'not-allowed' || event.error === 'permission-denied') {
           setIsListening(false);
           setSpeechError(
@@ -411,19 +399,10 @@ Ask me anything about your shop:
               ? 'మైక్రోఫోన్ అనుమతి నిరాకరించబడింది. బ్రౌజర్ లో మైక్ పర్మిషన్ Allow చేయండి.'
               : pageLang === 'hi'
               ? 'माइक्रोफ़ोन अनुमति नहीं मिली। कृपया ब्राउज़र में अनुमति दें।'
-              : 'Microphone permission denied. Please allow microphone access in your browser.'
+              : 'Microphone permission denied. Please allow microphone access in your browser address bar.'
           );
         } else if (event.error === 'no-speech') {
-          if (!transcriptRef.current && !input) {
-            setIsListening(false);
-            setSpeechError(
-              pageLang === 'te'
-                ? 'ఏమీ వినబడలేదు. దయచేసి మైక్ దగ్గర స్పష్టంగా మాట్లాడండి.'
-                : pageLang === 'hi'
-                ? 'कोई आवाज़ सुनाई नहीं दी। कृपया माइक के पास साफ़ बोलें।'
-                : 'No speech detected. Please speak clearly into your microphone.'
-            );
-          }
+          // Keep listening peacefully without abruptly erroring out
         } else if (event.error !== 'aborted') {
           setIsListening(false);
         }
@@ -460,21 +439,15 @@ Ask me anything about your shop:
   };
 
   // Text-To-Speech (TTS)
-  const toggleTTS = (msgId: string, text: string) => {
-    if (!('speechSynthesis' in window)) return;
+  const toggleTTS = async (msgId: string, text: string) => {
     if (isSpeakingId === msgId) {
-      window.speechSynthesis.cancel();
+      manaAiService.stopSpeaking();
       setIsSpeakingId(null);
     } else {
-      window.speechSynthesis.cancel();
-      const cleanText = text.replace(/[*#•-]/g, '');
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.lang = selectedVoiceLang;
-      utterance.rate = 0.95;
       setIsSpeakingId(msgId);
-      utterance.onend = () => setIsSpeakingId(null);
-      utterance.onerror = () => setIsSpeakingId(null);
-      window.speechSynthesis.speak(utterance);
+      await manaAiService.speakText(text, pageLang, () => {
+        setIsSpeakingId(null);
+      });
     }
   };
 
@@ -555,9 +528,6 @@ Ask me anything about your shop:
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-black tracking-tight">Mana-AI</h1>
-              <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full">
-                {pageLang === 'te' ? 'మన బిజినెస్ AI' : pageLang === 'hi' ? 'हमारा बिजनेस AI' : 'Business Copilot'}
-              </span>
             </div>
             <p className="text-xs text-slate-300 mt-0.5">
               {pageLang === 'te'
@@ -967,11 +937,11 @@ Ask me anything about your shop:
       {/* MODEL / API CONFIGURATION MODAL */}
       {showConfigModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <Bot className="w-5 h-5 text-emerald-600" />
-                <h3 className="font-extrabold text-slate-900 text-base">Mana-AI Brain Settings</h3>
+                <h3 className="font-extrabold text-slate-900 text-base">Mana-AI Brain & Voice Settings</h3>
               </div>
               <button
                 onClick={() => setShowConfigModal(false)}
@@ -981,9 +951,10 @@ Ask me anything about your shop:
               </button>
             </div>
 
+            {/* SECTION 1: INTELLIGENCE ENGINE */}
             <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-700 block">
-                Choose AI Intelligence Engine:
+              <label className="text-xs font-bold text-slate-700 block uppercase tracking-wider text-[11px]">
+                1. AI Intelligence Engine (LLM)
               </label>
 
               {/* Engine 1: Mana-AI Smart Deterministic (Default) */}
@@ -1000,14 +971,14 @@ Ask me anything about your shop:
                   value="local_smart"
                   checked={config.provider === 'local_smart'}
                   onChange={() => setConfig({ ...config, provider: 'local_smart' })}
-                  className="mt-1"
+                  className="mt-1 text-emerald-600 focus:ring-emerald-500"
                 />
                 <div>
                   <span className="font-bold text-xs text-slate-900 block">
                     ⚡ Mana-AI Smart Brain (Recommended)
                   </span>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    100% Free, Zero-latency, works offline with live store data and instant PDF generators.
+                    100% Free, zero-latency, works offline with live store data and instant PDF generators.
                   </p>
                 </div>
               </label>
@@ -1026,14 +997,14 @@ Ask me anything about your shop:
                   value="gemini"
                   checked={config.provider === 'gemini'}
                   onChange={() => setConfig({ ...config, provider: 'gemini' })}
-                  className="mt-1"
+                  className="mt-1 text-emerald-600 focus:ring-emerald-500"
                 />
                 <div className="flex-1">
                   <span className="font-bold text-xs text-slate-900 block">
                     🚀 Google Gemini 1.5 Flash (Cloud LLM)
                   </span>
                   <p className="text-[11px] text-slate-500 mt-0.5 mb-2">
-                    Connects directly to Google Generative AI for open-ended conversation.
+                    Connects directly to Google Generative AI for complex multi-turn conversation.
                   </p>
                   {config.provider === 'gemini' && (
                     <input
@@ -1048,10 +1019,148 @@ Ask me anything about your shop:
               </label>
             </div>
 
+            {/* SECTION 2: AI VOICE & SPEECH SYNTHESIS ENGINE */}
+            <div className="space-y-3 pt-3 border-t border-slate-100">
+              <label className="text-xs font-bold text-slate-700 block uppercase tracking-wider text-[11px]">
+                2. AI Voice & Speech Engine (TTS & Mic)
+              </label>
+
+              {/* Voice 1: Browser Native Enhanced */}
+              <label
+                className={`flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition ${
+                  config.voiceProvider === 'browser_native'
+                    ? 'border-emerald-500 bg-emerald-50/50'
+                    : 'border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="voiceProvider"
+                  value="browser_native"
+                  checked={config.voiceProvider === 'browser_native'}
+                  onChange={() => setConfig({ ...config, voiceProvider: 'browser_native' })}
+                  className="mt-1 text-emerald-600 focus:ring-emerald-500"
+                />
+                <div>
+                  <span className="font-bold text-xs text-slate-900 block">
+                    🎙️ Enhanced Browser Voice (Free & Instant)
+                  </span>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Uses built-in speech synthesis with automatic Indian accent and local phonetic routing. No API key required.
+                  </p>
+                </div>
+              </label>
+
+              {/* Voice 2: Google Cloud Text-to-Speech API */}
+              <label
+                className={`flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition ${
+                  config.voiceProvider === 'google_tts'
+                    ? 'border-emerald-500 bg-emerald-50/50'
+                    : 'border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="voiceProvider"
+                  value="google_tts"
+                  checked={config.voiceProvider === 'google_tts'}
+                  onChange={() => setConfig({ ...config, voiceProvider: 'google_tts' })}
+                  className="mt-1 text-emerald-600 focus:ring-emerald-500"
+                />
+                <div className="flex-1">
+                  <span className="font-bold text-xs text-slate-900 block">
+                    🌐 Google Cloud Text-to-Speech API (Neural Indic)
+                  </span>
+                  <p className="text-[11px] text-slate-500 mt-0.5 mb-2">
+                    Studio-grade human audio for Telugu (te-IN), Hindi (hi-IN Neural2), and Indian English.
+                  </p>
+                  {config.voiceProvider === 'google_tts' && (
+                    <input
+                      type="password"
+                      placeholder="Paste Google Cloud TTS API Key..."
+                      value={config.googleVoiceApiKey || ''}
+                      onChange={(e) => setConfig({ ...config, googleVoiceApiKey: e.target.value })}
+                      className="w-full text-xs p-2 rounded-xl bg-white border border-slate-300 focus:outline-none focus:border-emerald-500"
+                    />
+                  )}
+                </div>
+              </label>
+
+              {/* Voice 3: OpenAI Audio API */}
+              <label
+                className={`flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition ${
+                  config.voiceProvider === 'openai_tts'
+                    ? 'border-emerald-500 bg-emerald-50/50'
+                    : 'border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="voiceProvider"
+                  value="openai_tts"
+                  checked={config.voiceProvider === 'openai_tts'}
+                  onChange={() => setConfig({ ...config, voiceProvider: 'openai_tts' })}
+                  className="mt-1 text-emerald-600 focus:ring-emerald-500"
+                />
+                <div className="flex-1">
+                  <span className="font-bold text-xs text-slate-900 block">
+                    🤖 OpenAI Audio TTS (tts-1 / Nova)
+                  </span>
+                  <p className="text-[11px] text-slate-500 mt-0.5 mb-2">
+                    Ultra-realistic natural tone from OpenAI's generative audio models.
+                  </p>
+                  {config.voiceProvider === 'openai_tts' && (
+                    <input
+                      type="password"
+                      placeholder="Paste OpenAI API Key (sk-...)..."
+                      value={config.openaiVoiceApiKey || ''}
+                      onChange={(e) => setConfig({ ...config, openaiVoiceApiKey: e.target.value })}
+                      className="w-full text-xs p-2 rounded-xl bg-white border border-slate-300 focus:outline-none focus:border-emerald-500"
+                    />
+                  )}
+                </div>
+              </label>
+
+              {/* Voice 4: Sarvam AI Indic Speech API */}
+              <label
+                className={`flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition ${
+                  config.voiceProvider === 'sarvam_tts'
+                    ? 'border-emerald-500 bg-emerald-50/50'
+                    : 'border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="voiceProvider"
+                  value="sarvam_tts"
+                  checked={config.voiceProvider === 'sarvam_tts'}
+                  onChange={() => setConfig({ ...config, voiceProvider: 'sarvam_tts' })}
+                  className="mt-1 text-emerald-600 focus:ring-emerald-500"
+                />
+                <div className="flex-1">
+                  <span className="font-bold text-xs text-slate-900 block">
+                    🇮🇳 Sarvam AI Indic Speech (Bulbul Models)
+                  </span>
+                  <p className="text-[11px] text-slate-500 mt-0.5 mb-2">
+                    Engineered specifically for Indian languages with native Telugu & Hindi accents.
+                  </p>
+                  {config.voiceProvider === 'sarvam_tts' && (
+                    <input
+                      type="password"
+                      placeholder="Paste Sarvam API Subscription Key..."
+                      value={config.sarvamVoiceApiKey || ''}
+                      onChange={(e) => setConfig({ ...config, sarvamVoiceApiKey: e.target.value })}
+                      className="w-full text-xs p-2 rounded-xl bg-white border border-slate-300 focus:outline-none focus:border-emerald-500"
+                    />
+                  )}
+                </div>
+              </label>
+            </div>
+
             {savedConfigNotice && (
               <div className="p-2 rounded-xl bg-emerald-100 text-emerald-900 text-xs font-bold flex items-center gap-1.5 justify-center">
                 <Check className="w-4 h-4 text-emerald-600" />
-                <span>AI Configuration Saved!</span>
+                <span>Brain & Voice Settings Successfully Saved!</span>
               </div>
             )}
 
@@ -1064,7 +1173,7 @@ Ask me anything about your shop:
               </button>
               <button
                 onClick={handleSaveConfig}
-                className="flex-1 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition"
+                className="flex-1 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition shadow-sm"
               >
                 Save Settings
               </button>

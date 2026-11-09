@@ -25,27 +25,255 @@ export interface ManaAIConfig {
   provider: 'local_smart' | 'gemini' | 'openai';
   geminiApiKey: string;
   openaiApiKey: string;
+  voiceProvider: 'browser_native' | 'google_tts' | 'openai_tts' | 'sarvam_tts';
+  googleVoiceApiKey?: string;
+  openaiVoiceApiKey?: string;
+  sarvamVoiceApiKey?: string;
 }
 
 class ManaAIService {
   private configKey = 'mana_ai_config_v1';
+  private currentAudio: HTMLAudioElement | null = null;
 
   public getConfig(): ManaAIConfig {
     try {
       const saved = localStorage.getItem(this.configKey);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        return {
+          provider: parsed.provider || 'local_smart',
+          geminiApiKey: parsed.geminiApiKey || '',
+          openaiApiKey: parsed.openaiApiKey || '',
+          voiceProvider: parsed.voiceProvider || 'browser_native',
+          googleVoiceApiKey: parsed.googleVoiceApiKey || '',
+          openaiVoiceApiKey: parsed.openaiVoiceApiKey || '',
+          sarvamVoiceApiKey: parsed.sarvamVoiceApiKey || '',
+        };
       }
     } catch {}
     return {
       provider: 'local_smart',
       geminiApiKey: '',
       openaiApiKey: '',
+      voiceProvider: 'browser_native',
+      googleVoiceApiKey: '',
+      openaiVoiceApiKey: '',
+      sarvamVoiceApiKey: '',
     };
   }
 
   public saveConfig(config: ManaAIConfig): void {
     localStorage.setItem(this.configKey, JSON.stringify(config));
+  }
+
+  public stopSpeaking(): void {
+    if (this.currentAudio) {
+      try {
+        this.currentAudio.pause();
+        this.currentAudio.currentTime = 0;
+      } catch {}
+      this.currentAudio = null;
+    }
+    if ('speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {}
+    }
+  }
+
+  /**
+   * High-Fidelity Text-To-Speech Synthesizer
+   * Supports Google Cloud TTS, OpenAI Audio, Sarvam AI Indic Voice API, and Enhanced Browser SpeechSynthesis.
+   */
+  public async speakText(
+    text: string,
+    lang: 'te' | 'hi' | 'en' = 'en',
+    onEnd?: () => void
+  ): Promise<boolean> {
+    this.stopSpeaking();
+    const config = this.getConfig();
+    const cleanText = text
+      .replace(/[*#•-]/g, '')
+      .replace(/₹/g, 'Rupees ')
+      .trim();
+
+    if (!cleanText) {
+      onEnd?.();
+      return false;
+    }
+
+    // 1. Google Cloud Text-To-Speech API (Neural Indic Models)
+    if (config.voiceProvider === 'google_tts' && config.googleVoiceApiKey) {
+      try {
+        const langCode = lang === 'te' ? 'te-IN' : lang === 'hi' ? 'hi-IN' : 'en-IN';
+        const voiceName =
+          lang === 'te'
+            ? 'te-IN-Standard-A'
+            : lang === 'hi'
+            ? 'hi-IN-Neural2-A'
+            : 'en-IN-Neural2-A';
+
+        const res = await fetch(
+          `https://texttospeech.googleapis.com/v1/text:synthesize?key=${config.googleVoiceApiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              input: { text: cleanText },
+              voice: { languageCode: langCode, name: voiceName },
+              audioConfig: { audioEncoding: 'MP3', speakingRate: 0.95 },
+            }),
+          }
+        );
+        const data = await res.json();
+        if (data.audioContent) {
+          const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+          this.currentAudio = audio;
+          audio.onended = () => {
+            this.currentAudio = null;
+            onEnd?.();
+          };
+          audio.onerror = () => {
+            this.currentAudio = null;
+            onEnd?.();
+          };
+          await audio.play();
+          return true;
+        }
+      } catch (err) {
+        console.warn('Google Cloud TTS failed, falling back to browser speech:', err);
+      }
+    }
+
+    // 2. OpenAI Audio API (TTS-1)
+    const openAiKey = config.openaiVoiceApiKey || config.openaiApiKey;
+    if (config.voiceProvider === 'openai_tts' && openAiKey) {
+      try {
+        const res = await fetch('https://api.openai.com/v1/audio/speech', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${openAiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'tts-1',
+            input: cleanText,
+            voice: 'nova',
+          }),
+        });
+        if (res.ok) {
+          const blob = await res.blob();
+          const audioUrl = URL.createObjectURL(blob);
+          const audio = new Audio(audioUrl);
+          this.currentAudio = audio;
+          audio.onended = () => {
+            this.currentAudio = null;
+            URL.revokeObjectURL(audioUrl);
+            onEnd?.();
+          };
+          audio.onerror = () => {
+            this.currentAudio = null;
+            URL.revokeObjectURL(audioUrl);
+            onEnd?.();
+          };
+          await audio.play();
+          return true;
+        }
+      } catch (err) {
+        console.warn('OpenAI TTS failed, falling back to browser speech:', err);
+      }
+    }
+
+    // 3. Sarvam AI Indic Speech API (Specialized Telugu & Hindi)
+    if (config.voiceProvider === 'sarvam_tts' && config.sarvamVoiceApiKey) {
+      try {
+        const langCode = lang === 'te' ? 'te-IN' : lang === 'hi' ? 'hi-IN' : 'en-IN';
+        const res = await fetch('https://api.sarvam.ai/text-to-speech', {
+          method: 'POST',
+          headers: {
+            'api-subscription-key': config.sarvamVoiceApiKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            inputs: [cleanText],
+            target_language_code: langCode,
+            speaker: 'meera',
+            model: 'bulbul:v1',
+          }),
+        });
+        const data = await res.json();
+        if (data.audios && data.audios[0]) {
+          const audio = new Audio(`data:audio/wav;base64,${data.audios[0]}`);
+          this.currentAudio = audio;
+          audio.onended = () => {
+            this.currentAudio = null;
+            onEnd?.();
+          };
+          audio.onerror = () => {
+            this.currentAudio = null;
+            onEnd?.();
+          };
+          await audio.play();
+          return true;
+        }
+      } catch (err) {
+        console.warn('Sarvam AI TTS failed, falling back to browser speech:', err);
+      }
+    }
+
+    // 4. Default / Fallback: Enhanced Browser SpeechSynthesis
+    if ('speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        const targetLang = lang === 'te' ? 'te-IN' : lang === 'hi' ? 'hi-IN' : 'en-IN';
+        utterance.lang = targetLang;
+        utterance.rate = 0.95;
+        utterance.pitch = 1.02;
+
+        const voices = window.speechSynthesis.getVoices();
+        if (targetLang === 'te-IN') {
+          const teVoice = voices.find(
+            (v) => v.lang.startsWith('te') || v.name.toLowerCase().includes('telugu')
+          );
+          if (teVoice) {
+            utterance.voice = teVoice;
+          } else {
+            const inVoice = voices.find(
+              (v) => v.lang === 'en-IN' || v.name.toLowerCase().includes('india')
+            );
+            if (inVoice) utterance.voice = inVoice;
+          }
+        } else if (targetLang === 'hi-IN') {
+          const hiVoice = voices.find(
+            (v) => v.lang.startsWith('hi') || v.name.toLowerCase().includes('hindi')
+          );
+          if (hiVoice) {
+            utterance.voice = hiVoice;
+          } else {
+            const inVoice = voices.find(
+              (v) => v.lang === 'en-IN' || v.name.toLowerCase().includes('india')
+            );
+            if (inVoice) utterance.voice = inVoice;
+          }
+        } else {
+          const enVoice = voices.find(
+            (v) => v.lang === 'en-IN' || v.name.toLowerCase().includes('india')
+          );
+          if (enVoice) utterance.voice = enVoice;
+        }
+
+        utterance.onend = () => onEnd?.();
+        utterance.onerror = () => onEnd?.();
+        window.speechSynthesis.speak(utterance);
+        return true;
+      } catch (err) {
+        console.error('Browser speech synthesis error:', err);
+      }
+    }
+
+    onEnd?.();
+    return false;
   }
 
   /**
