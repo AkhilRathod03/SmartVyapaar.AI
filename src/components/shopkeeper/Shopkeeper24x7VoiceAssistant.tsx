@@ -19,7 +19,6 @@ import {
   RotateCw,
 } from 'lucide-react';
 import { storage } from '../../services/storageService';
-import { aiService } from '../../services/aiService';
 import { Order, OrderStatus } from '../../types';
 import { useLanguage, Language } from '../../context/LanguageContext';
 
@@ -150,7 +149,6 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
   const announcedOrderIdsRef = useRef<Set<string>>(new Set());
   const transcriptRef = useRef<string>('');
   const silenceTimerRef = useRef<any>(null);
-  const restartTimerRef = useRef<any>(null);
   const isSpeakingRef = useRef<boolean>(false);
 
   // Robust references to prevent race conditions on pause/mute
@@ -256,11 +254,8 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
         onEnd?.();
         // Immediately resume listening for unbroken 2-way continuous talk
         if (isVoiceActiveRef.current && !isManuallyPausedRef.current) {
-          if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
-          restartTimerRef.current = setTimeout(() => {
-            if (isVoiceActiveRef.current && !isManuallyPausedRef.current && !isSpeakingRef.current) {
-              startListening();
-            }
+          setTimeout(() => {
+            startListening();
           }, 200);
         }
       };
@@ -277,10 +272,7 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
       isSpeakingRef.current = false;
       onEnd?.();
       if (isVoiceActiveRef.current && !isManuallyPausedRef.current) {
-        if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
-        restartTimerRef.current = setTimeout(() => {
-          startListening();
-        }, 200);
+        startListening();
       }
     }
   };
@@ -288,7 +280,6 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
   // Stop listening cleanly without reviving
   const stopListening = () => {
     if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-    if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
     if (recognitionRef.current) {
       try {
         recognitionRef.current.abort();
@@ -354,10 +345,7 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
           if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
           silenceTimerRef.current = setTimeout(() => {
             if (transcriptRef.current.trim().length > 1) {
-              const textToSend = transcriptRef.current.trim();
-              transcriptRef.current = '';
-              setInterimTranscript('');
-              handleProcessShopkeeperVoice(textToSend);
+              handleProcessShopkeeperVoice(transcriptRef.current.trim());
             }
           }, 650);
         }
@@ -367,7 +355,6 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
         if (e.error === 'not-allowed') {
           isManuallyPausedRef.current = true;
           setIsListening(false);
-          setAssistantStatus('Microphone access blocked');
         }
         isRecognitionRunningRef.current = false;
       };
@@ -377,11 +364,12 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
         setIsListening(false);
         // Unbroken 24/7 continuous listening: always restart as long as mic is not manually paused!
         if (isVoiceActiveRef.current && !isManuallyPausedRef.current && !isSpeakingRef.current) {
-          if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
-          restartTimerRef.current = setTimeout(() => {
-            if (isVoiceActiveRef.current && !isManuallyPausedRef.current && !isSpeakingRef.current) {
-              startListening();
-            }
+          setTimeout(() => {
+            try {
+              if (isVoiceActiveRef.current && !isManuallyPausedRef.current && !isSpeakingRef.current) {
+                startListening();
+              }
+            } catch {}
           }, 200);
         }
       };
@@ -391,12 +379,6 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
       setIsListening(true);
     } catch {
       isRecognitionRunningRef.current = false;
-      if (isVoiceActiveRef.current && !isManuallyPausedRef.current && !isSpeakingRef.current) {
-        if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
-        restartTimerRef.current = setTimeout(() => {
-          startListening();
-        }, 500);
-      }
     }
   };
 
@@ -687,36 +669,10 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
 
   // Process Shopkeeper Spoken Voice
   const handleProcessShopkeeperVoice = (spokenText: string) => {
-    if (!spokenText || !spokenText.trim()) return;
+    if (!activeVoiceOrder) return;
     const lower = spokenText.toLowerCase();
-
-    // 0. Manual pause / simulate by voice
-    if (
-      lower.includes('pause mic') ||
-      lower.includes('stop listening') ||
-      lower.includes('మైక్ ఆపు') ||
-      lower.includes('ఆపు') ||
-      lower.includes('వాయిస్ ఆపు') ||
-      lower.includes('माइक बंद') ||
-      lower.includes('माइक बंद करो')
-    ) {
-      handleToggleMic();
-      return;
-    }
-
-    if (
-      lower.includes('simulate order') ||
-      lower.includes('new order') ||
-      lower.includes('ఆర్డర్ పంపించు') ||
-      lower.includes('కొత్త ఆర్డర్') ||
-      lower.includes('నయా ఆర్డర్') ||
-      lower.includes('नया ऑर्डर')
-    ) {
-      handleSimulateNewCustomerOrder();
-      return;
-    }
-
     const currentOrder = activeVoiceOrder;
+
     // Detect language of spoken response
     const detected = detectSpokenDialect(spokenText);
 
@@ -951,212 +907,227 @@ export const Shopkeeper24x7VoiceAssistant: React.FC<Shopkeeper24x7VoiceAssistant
       lower.includes('रद्द करो') ||
       lower.includes('कैंसिल');
 
-    // EXECUTE LIFECYCLE PROGRESSION (When active order is awaiting actions):
-    if (currentOrder) {
-      // 1. STAGE 4: Handed to Delivery Partner -> Shipped
-      if (isShipped && (currentOrder.status === 'ready' || currentOrder.status === 'preparing' || currentOrder.status === 'shop_accepted' || currentOrder.status === 'request_sent')) {
+    // EXECUTE LIFECYCLE PROGRESSION:
+
+    // 1. STAGE 4: Handed to Delivery Partner -> Shipped
+    if (isShipped && (currentOrder.status === 'ready' || currentOrder.status === 'preparing' || currentOrder.status === 'shop_accepted' || currentOrder.status === 'request_sent')) {
+      stopListening();
+      const statusNote = 'Delivery partner has picked up — on the way for delivery! 🛵';
+      storage.updateOrderStatus(
+        currentOrder.id,
+        'out_for_delivery',
+        'On the way for delivery! 🛵',
+        statusNote,
+        { speaker: 'shopkeeper', text: spokenText }
+      );
+
+      let aiReply = '';
+      if (detected.dialect === 'te') {
+        aiReply = 'చాలా మంచిది! ఆర్డర్ డెలివరీ పార్టనర్‌తో బయలుదేరిందని కస్టమర్ పోర్టల్‌లో లైవ్ ట్రాకింగ్ అప్‌డేట్ చేసేశాను. ధన్యవాదాలు! 🛵';
+      } else if (detected.dialect === 'tenglish') {
+        aiReply = 'Super! Order dispatch ayindi ani customer ki update pampam. Live tracking modal lo kanipistundi! 🛵';
+      } else if (detected.dialect === 'hi' || detected.dialect === 'hinglish') {
+        aiReply = 'बहुत बढ़िया! ऑर्डर सफलतापूर्वक डिलीवरी पार्टनर को सौंप दिया गया है। ग्राहक को लाइव ट्रैकिंग दिख रही है। 🛵';
+      } else {
+        aiReply = 'Order dispatched with delivery partner! Customer notified that delivery is on the way! 🛵';
+      }
+
+      setAssistantStatus('Order dispatched for delivery 🛵');
+      speakAI(aiReply, () => {
+        if (isVoiceActiveRef.current && !isManuallyPausedRef.current) startListening();
+      }, detected.langCode);
+      return;
+    }
+
+    // 2. STAGE 3: Items Packed & Ready for Partner
+    if (isOrderReady) {
+      if (currentOrder.status === 'preparing' || currentOrder.status === 'shop_accepted' || currentOrder.status === 'request_sent') {
         stopListening();
-        const statusNote = 'Delivery partner has picked up — on the way for delivery! 🛵';
+        const statusNote = 'Items have been packed and are ready for delivery, waiting for delivery partner.';
         storage.updateOrderStatus(
           currentOrder.id,
-          'out_for_delivery',
-          'On the way for delivery! 🛵',
+          'ready',
+          'Packed & ready, waiting for delivery partner',
           statusNote,
           { speaker: 'shopkeeper', text: spokenText }
         );
 
         let aiReply = '';
         if (detected.dialect === 'te') {
-          aiReply = 'చాలా మంచిది! ఆర్డర్ డెలివరీ పార్టనర్‌తో బయలుదేరిందని కస్టమర్ పోర్టల్‌లో లైవ్ ట్రాకింగ్ అప్‌డేట్ చేసేశాను. ధన్యవాదాలు! 🛵';
+          aiReply = 'ఆర్డర్ ప్యాక్ అయింది, డెలివరీ పార్టనర్ కోసం సిద్ధంగా ఉందని కస్టమర్‌కి అప్‌డేట్ చేశాను. డెలివరీ బాయ్ రాగానే సరుకులు ఇచ్చి "ఆర్డర్ పంపించాను" అని చెప్పండి.';
         } else if (detected.dialect === 'tenglish') {
-          aiReply = 'Super! Order dispatch ayindi ani customer ki update pampam. Live tracking modal lo kanipistundi! 🛵';
+          aiReply = 'Items pack ayipoyayi ani customer portal lo update chesam. Delivery boy ravagane handover chesi "shipped" or "pampinchanu" ani cheppandi.';
         } else if (detected.dialect === 'hi' || detected.dialect === 'hinglish') {
-          aiReply = 'बहुत बढ़िया! ऑर्डर सफलतापूर्वक डिलीवरी पार्टनर को सौंप दिया गया है। ग्राहक को लाइव ट्रैकिंग दिख रही है। 🛵';
+          aiReply = 'सामान पैक हो चुका है और डिलीवरी पार्टनर के लिए तैयार है, ग्राहक को सूचना दे दी गई है। डिलीवरी बॉय को देने के बाद कहें "सामान भेज दिया"।';
         } else {
-          aiReply = 'Order dispatched with delivery partner! Customer notified that delivery is on the way! 🛵';
+          aiReply = 'Got it! Updated customer portal: Items are packed and ready for delivery partner pickup.';
         }
 
-        setAssistantStatus('Order dispatched for delivery 🛵');
-        speakAI(aiReply, undefined, detected.langCode);
+        setAssistantStatus('Items packed. Waiting for delivery partner...');
+        speakAI(aiReply, () => {
+          if (isVoiceActiveRef.current && !isManuallyPausedRef.current) startListening();
+        }, detected.langCode);
+        return;
+      } else if (currentOrder.status === 'ready') {
+        stopListening();
+        let aiReply = '';
+        if (detected.dialect === 'te' || detected.dialect === 'tenglish') {
+          aiReply = 'ఆర్డర్ ఇప్పటికే ప్యాక్ అయ్యి సిద్ధంగా ఉంది. డెలివరీ బాయ్ తీసుకెళ్లాక "ఆర్డర్ పంపించాను" అని చెప్పండి.';
+        } else if (detected.dialect === 'hi' || detected.dialect === 'hinglish') {
+          aiReply = 'ऑर्डर पहले ही पैक होकर तैयार है। डिलीवरी बॉय को देने के बाद बोलें "सामान भेज दिया"।';
+        } else {
+          aiReply = 'Order is already packed and waiting for delivery partner. When handed over, say "Shipped".';
+        }
+        setAssistantStatus('Items packed. Ready for delivery partner...');
+        speakAI(aiReply, () => {
+          if (isVoiceActiveRef.current && !isManuallyPausedRef.current) startListening();
+        }, detected.langCode);
         return;
       }
+    }
 
-      // 2. STAGE 3: Items Packed & Ready for Partner
-      if (isOrderReady) {
-        if (currentOrder.status === 'preparing' || currentOrder.status === 'shop_accepted' || currentOrder.status === 'request_sent') {
-          stopListening();
-          const statusNote = 'Items have been packed and are ready for delivery, waiting for delivery partner.';
-          storage.updateOrderStatus(
-            currentOrder.id,
-            'ready',
-            'Packed & ready, waiting for delivery partner',
-            statusNote,
-            { speaker: 'shopkeeper', text: spokenText }
-          );
-
-          let aiReply = '';
-          if (detected.dialect === 'te') {
-            aiReply = 'ఆర్డర్ ప్యాక్ అయింది, డెలివరీ పార్టనర్ కోసం సిద్ధంగా ఉందని కస్టమర్‌కి అప్‌డేట్ చేశాను. డెలివరీ బాయ్ రాగానే సరుకులు ఇచ్చి "ఆర్డర్ పంపించాను" అని చెప్పండి.';
-          } else if (detected.dialect === 'tenglish') {
-            aiReply = 'Items pack ayipoyayi ani customer portal lo update chesam. Delivery boy ravagane handover chesi "shipped" or "pampinchanu" ani cheppandi.';
-          } else if (detected.dialect === 'hi' || detected.dialect === 'hinglish') {
-            aiReply = 'सामान पैक हो चुका है और डिलीवरी पार्टनर के लिए तैयार है, ग्राहक को सूचना दे दी गई है। डिलीवरी बॉय को देने के बाद कहें "सामान भेज दिया"।';
-          } else {
-            aiReply = 'Got it! Updated customer portal: Items are packed and ready for delivery partner pickup.';
-          }
-
-          setAssistantStatus('Items packed. Waiting for delivery partner...');
-          speakAI(aiReply, undefined, detected.langCode);
-          return;
-        } else if (currentOrder.status === 'ready') {
-          stopListening();
-          let aiReply = '';
-          if (detected.dialect === 'te' || detected.dialect === 'tenglish') {
-            aiReply = 'ఆర్డర్ ఇప్పటికే ప్యాక్ అయ్యి సిద్ధంగా ఉంది. డెలివరీ బాయ్ తీసుకెళ్లాక "ఆర్డర్ పంపించాను" అని చెప్పండి.';
-          } else if (detected.dialect === 'hi' || detected.dialect === 'hinglish') {
-            aiReply = 'ऑर्डर पहले ही पैक होकर तैयार है। डिलीवरी बॉय को देने के बाद बोलें "सामान भेज दिया"।';
-          } else {
-            aiReply = 'Order is already packed and waiting for delivery partner. When handed over, say "Shipped".';
-          }
-          setAssistantStatus('Items packed. Ready for delivery partner...');
-          speakAI(aiReply, undefined, detected.langCode);
-          return;
-        }
-      }
-
-      // 3. STAGE 2: Packaging Order in Progress
-      if (isPackingOrder) {
-        if (currentOrder.status === 'shop_accepted' || currentOrder.status === 'request_sent') {
-          stopListening();
-          const statusNote = 'Store is packing the items (Estimated 5 mins).';
-          storage.updateOrderStatus(
-            currentOrder.id,
-            'preparing',
-            'Items being packed (5 mins)',
-            statusNote,
-            { speaker: 'shopkeeper', text: spokenText }
-          );
-
-          let aiReply = '';
-          if (detected.dialect === 'te') {
-            aiReply = 'సరేనండి! సరుకులు ప్యాక్ అవుతున్నట్లు కస్టమర్ పోర్టల్‌లో అప్‌డేట్ చేసేశాను. ప్యాకింగ్ పూర్తయ్యాక "ఆర్డర్ రెడీగా ఉంది" అని చెప్పండి.';
-          } else if (detected.dialect === 'tenglish') {
-            aiReply = 'Items pack chestunnaru ani customer portal lo update ayindi. Packing avvagane "order ready" ani cheppandi.';
-          } else if (detected.dialect === 'hi' || detected.dialect === 'hinglish') {
-            aiReply = 'सामान पैक हो रहा है, मैंने ग्राहक को अपडेट कर दिया है। पैकिंग पूरी होने पर कहें "ऑर्डर तैयार है"।';
-          } else {
-            aiReply = 'Got it! Updated customer portal that items are being packed. When finished, say "Order ready".';
-          }
-
-          setAssistantStatus('Packaging in progress (5 mins)...');
-          speakAI(aiReply, undefined, detected.langCode);
-          return;
-        } else if (currentOrder.status === 'preparing') {
-          stopListening();
-          let aiReply = '';
-          if (detected.dialect === 'te' || detected.dialect === 'tenglish') {
-            aiReply = 'సరుకులు ప్రస్తుతం ప్యాకింగ్ లో ఉన్నాయి. పూర్తయ్యాక "ఆర్డర్ రెడీగా ఉంది" అని చెప్పండి.';
-          } else if (detected.dialect === 'hi' || detected.dialect === 'hinglish') {
-            aiReply = 'हाँ जी, सामान की पैकिंग चल रही है। पैकिंग पूरी होने पर बोलें "ऑर्डर तैयार है"।';
-          } else {
-            aiReply = 'Packaging is currently in progress. When done, say "Order ready".';
-          }
-          setAssistantStatus('Packaging in progress (5 mins)...');
-          speakAI(aiReply, undefined, detected.langCode);
-          return;
-        }
-      }
-
-      // 4. STAGE 1: Order Acceptance ("order accept karo", "accept karo", "ఆర్డర్ యాక్సెప్ట్ కరో")
-      if (isAcceptOrder) {
-        if (currentOrder.status === 'request_sent') {
-          stopListening();
-          const statusNote = 'Store accepted the order and confirmed items in stock.';
-          storage.updateOrderStatus(
-            currentOrder.id,
-            'shop_accepted',
-            'Order accepted (In Stock)',
-            statusNote,
-            { speaker: 'shopkeeper', text: spokenText }
-          );
-
-          let aiReply = '';
-          if (detected.dialect === 'te') {
-            aiReply = 'సరేనండి! ఆర్డర్ యాక్సెప్ట్ చేశాను. కస్టమర్‌కి సమాచారం పంపాను. మీరు సరుకులు ప్యాక్ చేయడం ప్రారంభించాక "ప్యాకింగ్ చేస్తున్నాను" అని చెప్పండి.';
-          } else if (detected.dialect === 'tenglish') {
-            aiReply = 'Order accept chesam! Customer ki update pampam. Pack chestunnappudu "packing the order" or "pack chestunna" ani cheppandi.';
-          } else if (detected.dialect === 'hi' || detected.dialect === 'hinglish') {
-            aiReply = 'हाँ जी! ऑर्डर स्वीकार कर लिया गया है। ग्राहक को सूचना भेज दी गई है। सामान पैक करना शुरू करने पर कहें "पैक कर रहा हूँ"।';
-          } else {
-            aiReply = 'Order accepted! Customer notified. When you start packing, say "Packing the order".';
-          }
-
-          setAssistantStatus('Order accepted. Waiting for packing confirmation...');
-          speakAI(aiReply, undefined, detected.langCode);
-          return;
-        } else if (currentOrder.status === 'shop_accepted') {
-          // If shopkeeper repeats "order accept karo" while already accepted, NEVER ask what to do!
-          stopListening();
-          let aiReply = '';
-          if (detected.dialect === 'te' || detected.dialect === 'tenglish') {
-            aiReply = 'ఆర్డర్ ఇప్పటికే యాక్సెప్ట్ చేయబడింది! మీరు సరుకులు ప్యాక్ చేయడం మొదలుపెట్టాక "ప్యాకింగ్ చేస్తున్నాను" అని చెప్పండి.';
-          } else if (detected.dialect === 'hi' || detected.dialect === 'hinglish') {
-            aiReply = 'हाँ जी! ऑर्डर पहले ही स्वीकार हो चुका है। आप सामान पैक करना शुरू करने पर बोलें "पैक कर रहा हूँ"।';
-          } else {
-            aiReply = 'Order is already accepted! When you begin packing the items, say "Packing the order".';
-          }
-          setAssistantStatus('Order already accepted. Ready for packing...');
-          speakAI(aiReply, undefined, detected.langCode);
-          return;
-        } else if (currentOrder.status === 'preparing') {
-          stopListening();
-          let aiReply = '';
-          if (detected.dialect === 'te' || detected.dialect === 'tenglish') {
-            aiReply = 'ఆర్డర్ యాక్సెప్ట్ అయ్యి సరుకులు ప్యాక్ అవుతున్నాయి. ప్యాకింగ్ పూర్తయ్యాక "ఆర్డర్ రెడీగా ఉంది" అని చెప్పండి.';
-          } else if (detected.dialect === 'hi' || detected.dialect === 'hinglish') {
-            aiReply = 'ऑर्डर स्वीकार हो चुका है और सामान पैक हो रहा है। पूरा होने पर कहें "ऑर्डर तैयार है"।';
-          } else {
-            aiReply = 'Order is accepted and items are being packed. Say "Order ready" when packed.';
-          }
-          setAssistantStatus('Order accepted. Packaging in progress...');
-          speakAI(aiReply, undefined, detected.langCode);
-          return;
-        }
-      }
-
-      // REJECTION
-      if (isReject && (currentOrder.status === 'request_sent' || currentOrder.status === 'shop_accepted')) {
+    // 3. STAGE 2: Packaging Order in Progress
+    if (isPackingOrder) {
+      if (currentOrder.status === 'shop_accepted' || currentOrder.status === 'request_sent') {
         stopListening();
+        const statusNote = 'Store is packing the items (Estimated 5 mins).';
         storage.updateOrderStatus(
           currentOrder.id,
-          'rejected',
-          'Cancelled: Items out of stock',
-          'Store has no stock for requested items',
+          'preparing',
+          'Items being packed (5 mins)',
+          statusNote,
           { speaker: 'shopkeeper', text: spokenText }
         );
-        const aiReply =
-          detected.dialect === 'te' || detected.dialect === 'tenglish'
-            ? 'ఆర్డర్ తిరస్కరించబడింది. కస్టమర్‌కి సమాచారం పంపాను.'
-            : detected.dialect === 'hi' || detected.dialect === 'hinglish'
-            ? 'ऑर्डर रद्द कर दिया गया है।'
-            : 'Order rejected. Customer notified.';
-        speakAI(aiReply, undefined, detected.langCode);
+
+        let aiReply = '';
+        if (detected.dialect === 'te') {
+          aiReply = 'సరేనండి! సరుకులు ప్యాక్ అవుతున్నట్లు కస్టమర్ పోర్టల్‌లో అప్‌డేట్ చేసేశాను. ప్యాకింగ్ పూర్తయ్యాక "ఆర్డర్ రెడీగా ఉంది" అని చెప్పండి.';
+        } else if (detected.dialect === 'tenglish') {
+          aiReply = 'Items pack chestunnaru ani customer portal lo update ayindi. Packing avvagane "order ready" ani cheppandi.';
+        } else if (detected.dialect === 'hi' || detected.dialect === 'hinglish') {
+          aiReply = 'सामान पैक हो रहा है, मैंने ग्राहक को अपडेट कर दिया है। पैकिंग पूरी होने पर कहें "ऑर्डर तैयार है"।';
+        } else {
+          aiReply = 'Got it! Updated customer portal that items are being packed. When finished, say "Order ready".';
+        }
+
+        setAssistantStatus('Packaging in progress (5 mins)...');
+        speakAI(aiReply, () => {
+          if (isVoiceActiveRef.current && !isManuallyPausedRef.current) startListening();
+        }, detected.langCode);
+        return;
+      } else if (currentOrder.status === 'preparing') {
+        stopListening();
+        let aiReply = '';
+        if (detected.dialect === 'te' || detected.dialect === 'tenglish') {
+          aiReply = 'సరుకులు ప్రస్తుతం ప్యాకింగ్ లో ఉన్నాయి. పూర్తయ్యాక "ఆర్డర్ రెడీగా ఉంది" అని చెప్పండి.';
+        } else if (detected.dialect === 'hi' || detected.dialect === 'hinglish') {
+          aiReply = 'हाँ जी, सामान की पैकिंग चल रही है। पैकिंग पूरी होने पर बोलें "ऑर्डर तैयार है"।';
+        } else {
+          aiReply = 'Packaging is currently in progress. When done, say "Order ready".';
+        }
+        setAssistantStatus('Packaging in progress (5 mins)...');
+        speakAI(aiReply, () => {
+          if (isVoiceActiveRef.current && !isManuallyPausedRef.current) startListening();
+        }, detected.langCode);
         return;
       }
     }
 
-    // Multilingual Shopkeeper Intent Engine (Trained on AI General Store Dataset v1.0 - 33 intents!)
-    const result = aiService.handleMultilingualShopkeeperIntent(spokenText, shop.id, voiceLang);
+    // 4. STAGE 1: Order Acceptance
+    if (isAcceptOrder) {
+      if (currentOrder.status === 'request_sent') {
+        stopListening();
+        const statusNote = 'Store accepted the order and confirmed items in stock.';
+        storage.updateOrderStatus(
+          currentOrder.id,
+          'shop_accepted',
+          'Order accepted (In Stock)',
+          statusNote,
+          { speaker: 'shopkeeper', text: spokenText }
+        );
 
-    if (result.switchLang) {
-      setVoiceLang(result.switchLang);
-      try {
-        localStorage.setItem('impulx_shopkeeper_voice_lang', result.switchLang);
-      } catch {}
+        let aiReply = '';
+        if (detected.dialect === 'te') {
+          aiReply = 'సరేనండి! ఆర్డర్ యాక్సెప్ట్ చేశాను. కస్టమర్‌కి సమాచారం పంపాను. మీరు సరుకులు ప్యాక్ చేయడం ప్రారంభించాక "ప్యాకింగ్ చేస్తున్నాను" అని చెప్పండి.';
+        } else if (detected.dialect === 'tenglish') {
+          aiReply = 'Order accept chesam! Customer ki update pampam. Pack chestunnappudu "packing the order" or "pack chestunna" ani cheppandi.';
+        } else if (detected.dialect === 'hi' || detected.dialect === 'hinglish') {
+          aiReply = 'हाँ जी! ऑर्डर स्वीकार कर लिया गया है। ग्राहक को सूचना भेज दी गई है। सामान पैक करना शुरू करने पर कहें "पैक कर रहा हूँ"।';
+        } else {
+          aiReply = 'Order accepted! Customer notified. When you start packing, say "Packing the order".';
+        }
+
+        setAssistantStatus('Order accepted. Waiting for packing confirmation...');
+        speakAI(aiReply, () => {
+          if (isVoiceActiveRef.current && !isManuallyPausedRef.current) startListening();
+        }, detected.langCode);
+        return;
+      } else if (currentOrder.status === 'shop_accepted') {
+        // If shopkeeper repeats "order accept karo" while already accepted, DO NOT ask what to do!
+        stopListening();
+        let aiReply = '';
+        if (detected.dialect === 'te' || detected.dialect === 'tenglish') {
+          aiReply = 'ఆర్డర్ ఇప్పటికే యాక్సెప్ట్ చేయబడింది! మీరు సరుకులు ప్యాక్ చేయడం మొదలుపెట్టాక "ప్యాకింగ్ చేస్తున్నాను" అని చెప్పండి.';
+        } else if (detected.dialect === 'hi' || detected.dialect === 'hinglish') {
+          aiReply = 'हाँ जी! ऑर्डर पहले ही स्वीकार हो चुका है। आप सामान पैक करना शुरू करने पर बोलें "पैक कर रहा हूँ"।';
+        } else {
+          aiReply = 'Order is already accepted! When you begin packing the items, say "Packing the order".';
+        }
+        setAssistantStatus('Order already accepted. Ready for packing...');
+        speakAI(aiReply, () => {
+          if (isVoiceActiveRef.current && !isManuallyPausedRef.current) startListening();
+        }, detected.langCode);
+        return;
+      } else if (currentOrder.status === 'preparing') {
+        stopListening();
+        let aiReply = '';
+        if (detected.dialect === 'te' || detected.dialect === 'tenglish') {
+          aiReply = 'ఆర్డర్ యాక్సెప్ట్ అయ్యి సరుకులు ప్యాక్ అవుతున్నాయి. ప్యాకింగ్ పూర్తయ్యాక "ఆర్డర్ రెడీగా ఉంది" అని చెప్పండి.';
+        } else if (detected.dialect === 'hi' || detected.dialect === 'hinglish') {
+          aiReply = 'ऑर्डर स्वीकार हो चुका है और सामान पैक हो रहा है। पूरा होने पर कहें "ऑर्डर तैयार है"।';
+        } else {
+          aiReply = 'Order is accepted and items are being packed. Say "Order ready" when packed.';
+        }
+        setAssistantStatus('Order accepted. Packaging in progress...');
+        speakAI(aiReply, () => {
+          if (isVoiceActiveRef.current && !isManuallyPausedRef.current) startListening();
+        }, detected.langCode);
+        return;
+      }
     }
 
-    setAssistantStatus(result.reply.substring(0, 75));
-    speakAI(result.reply, undefined, result.targetLangCode);
+    // REJECTION
+    if (isReject && (currentOrder.status === 'request_sent' || currentOrder.status === 'shop_accepted')) {
+      stopListening();
+      storage.updateOrderStatus(
+        currentOrder.id,
+        'rejected',
+        'Cancelled: Items out of stock',
+        'Store has no stock for requested items',
+        { speaker: 'shopkeeper', text: spokenText }
+      );
+      const aiReply =
+        detected.dialect === 'te' || detected.dialect === 'tenglish'
+          ? 'ఆర్డర్ తిరస్కరించబడింది. కస్టమర్‌కి సమాచారం పంపాను.'
+          : detected.dialect === 'hi' || detected.dialect === 'hinglish'
+          ? 'ऑर्डर रद्द कर दिया गया है।'
+          : 'Order rejected. Customer notified.';
+      speakAI(aiReply, undefined, detected.langCode);
+      return;
+    }
+
+    // Fallback guidance if command wasn't recognized
+    const guidance =
+      detected.dialect === 'te'
+        ? 'చెప్పండి: "ఆర్డర్ ని యాక్సెప్ట్ చెయ్", "ప్యాకింగ్ చేస్తున్నాను", "ఆర్డర్ రెడీగా ఉంది", లేదా "ఆర్డర్ పంపించాను".'
+        : detected.dialect === 'tenglish'
+        ? 'Cheppandi: "Order ni accept chey", "Packing the order", "Order ready", or "Shipped".'
+        : detected.dialect === 'hi' || detected.dialect === 'hinglish'
+        ? 'बोलिए: "ऑर्डर स्वीकार करो", "पैक कर रहा हूँ", "ऑर्डर तैयार है", या "सामान भेज दिया"।'
+        : 'Say: "Order ni accept chey / Accept order", "Packing the order", "Order ready", or "Shipped".';
+    speakAI(guidance, () => {
+      if (isVoiceActiveRef.current && !isManuallyPausedRef.current) startListening();
+    }, detected.langCode);
   };
 
   const handleSimulateNewCustomerOrder = () => {
